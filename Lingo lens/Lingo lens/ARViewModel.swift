@@ -96,7 +96,7 @@ class ARViewModel: ObservableObject {
         containerNode.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
         
         let billboard = SCNBillboardConstraint()
-        billboard.freeAxes = .Y
+        billboard.freeAxes = [.X, .Y, .Z]
         containerNode.constraints = [billboard]
         
         return containerNode
