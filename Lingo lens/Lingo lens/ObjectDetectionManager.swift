@@ -19,7 +19,8 @@ class ObjectDetectionManager {
     private let insideMargin: CGFloat = 4
     
     init() {
-        let model = try! FastViTMA36F16(configuration: MLModelConfiguration()).model
+        let model = try! MobileNetV2FP16(configuration: MLModelConfiguration()).model
+//        let model = try! FastViTT8F16(configuration: MLModelConfiguration()).model
         do {
             visionModel = try VNCoreMLModel(for: model)
         } catch {

@@ -34,6 +34,7 @@ struct AdjustableBoundingBox: View {
                     x: roi.midX + boxDragOffset.width,
                     y: roi.midY + boxDragOffset.height
                 )
+            // In AdjustableBoundingBox.swift, inside the .gesture modifier for the main rectangle:
                 .gesture(
                     DragGesture()
                         .onChanged { value in
@@ -41,27 +42,71 @@ struct AdjustableBoundingBox: View {
                                 // Remember the ROI before drag
                                 initialBoxROI = roi
                             }
-                            // Live update offset as we drag
-                            boxDragOffset = value.translation
+                            var translation = value.translation
+                            if let initial = initialBoxROI {
+                                // Clamp right drag
+                                if translation.width > 0 {
+                                    let containerWidth = containerSize.width
+                                    let maxRightTranslation = containerWidth - margin - (initial.origin.x + initial.width)
+                                    translation.width = min(translation.width, maxRightTranslation)
+                                }
+                                // Clamp left drag
+                                if translation.width < 0 {
+                                    let maxLeftTranslation = margin - initial.origin.x  // negative value
+                                    translation.width = max(translation.width, maxLeftTranslation)
+                                }
+                                // Clamp upward drag (translation.height < 0 means moving up)
+                                if translation.height < 0 {
+                                    let maxUpTranslation = margin - initial.origin.y  // negative value
+                                    translation.height = max(translation.height, maxUpTranslation)
+                                }
+                                // Clamp downward drag
+                                if translation.height > 0 {
+                                    let containerHeight = containerSize.height
+                                    let maxDownTranslation = containerHeight - margin - (initial.origin.y + initial.height)
+                                    translation.height = min(translation.height, maxDownTranslation)
+                                }
+                            }
+                            boxDragOffset = translation
                         }
                         .onEnded { value in
-                            // When drag ends, permanently update ROI
                             if let initial = initialBoxROI {
-                                var newROI = CGRect(
-                                    x: initial.origin.x + value.translation.width,
-                                    y: initial.origin.y + value.translation.height,
+                                var translation = value.translation
+                                // Clamp right drag on drag end
+                                if translation.width > 0 {
+                                    let containerWidth = containerSize.width
+                                    let maxRightTranslation = containerWidth - margin - (initial.origin.x + initial.width)
+                                    translation.width = min(translation.width, maxRightTranslation)
+                                }
+                                // Clamp left drag on drag end
+                                if translation.width < 0 {
+                                    let maxLeftTranslation = margin - initial.origin.x
+                                    translation.width = max(translation.width, maxLeftTranslation)
+                                }
+                                // Clamp upward drag on drag end
+                                if translation.height < 0 {
+                                    let maxUpTranslation = margin - initial.origin.y
+                                    translation.height = max(translation.height, maxUpTranslation)
+                                }
+                                // Clamp downward drag on drag end
+                                if translation.height > 0 {
+                                    let containerHeight = containerSize.height
+                                    let maxDownTranslation = containerHeight - margin - (initial.origin.y + initial.height)
+                                    translation.height = min(translation.height, maxDownTranslation)
+                                }
+                                let newROI = CGRect(
+                                    x: initial.origin.x + translation.width,
+                                    y: initial.origin.y + translation.height,
                                     width: initial.width,
                                     height: initial.height
                                 )
-                                newROI = clampROI(newROI)
-                                roi = newROI
+                                roi = clampROI(newROI)
                             }
                             initialBoxROI = nil
-                            // Reset offset
                             boxDragOffset = .zero
                         }
                 )
-            
+
             // Corner handles...
             handleView(for: .topLeft)
             handleView(for: .topRight)
@@ -87,6 +132,7 @@ struct AdjustableBoundingBox: View {
             )
             .gesture(
                 DragGesture()
+                // In AdjustableBoundingBox.swift, update the onChanged block inside handleView:
                     .onChanged { value in
                         if initialHandleROI == nil {
                             initialHandleROI = roi
@@ -96,31 +142,62 @@ struct AdjustableBoundingBox: View {
                         
                         switch position {
                         case .topLeft:
-                            newROI.origin.x = initial.origin.x + value.translation.width
-                            newROI.origin.y = initial.origin.y + value.translation.height
-                            newROI.size.width = initial.width - value.translation.width
-                            newROI.size.height = initial.height - value.translation.height
+                            let deltaX = value.translation.width
+                            let deltaY = value.translation.height
+                            // For topLeft, dragging right (positive deltaX) reduces width.
+                            // Clamp only if deltaX > (initial.width - 100)
+                            let effectiveDeltaX: CGFloat = deltaX > 0 ? min(deltaX, initial.width - 100) : deltaX
+                            // Similarly for vertical: positive deltaY reduces height.
+                            let effectiveDeltaY: CGFloat = deltaY > 0 ? min(deltaY, initial.height - 100) : deltaY
+                            
+                            newROI.origin.x = initial.origin.x + effectiveDeltaX
+                            newROI.origin.y = initial.origin.y + effectiveDeltaY
+                            newROI.size.width = initial.width - effectiveDeltaX
+                            newROI.size.height = initial.height - effectiveDeltaY
                             
                         case .topRight:
-                            newROI.origin.y = initial.origin.y + value.translation.height
-                            newROI.size.width = initial.width + value.translation.width
-                            newROI.size.height = initial.height - value.translation.height
+                            let deltaX = value.translation.width
+                            let deltaY = value.translation.height
+                            // For topRight, horizontal: new width = initial.width + deltaX.
+                            // If deltaX is negative (reducing width), clamp so that width doesn't go below 100.
+                            let effectiveDeltaX: CGFloat = deltaX < 0 ? max(deltaX, 100 - initial.width) : deltaX
+                            // Vertical: new height = initial.height - deltaY.
+                            let effectiveDeltaY: CGFloat = deltaY > 0 ? min(deltaY, initial.height - 100) : deltaY
+                            
+                            // x stays same.
+                            newROI.origin.y = initial.origin.y + effectiveDeltaY
+                            newROI.size.width = initial.width + effectiveDeltaX
+                            newROI.size.height = initial.height - effectiveDeltaY
                             
                         case .bottomLeft:
-                            newROI.origin.x = initial.origin.x + value.translation.width
-                            newROI.size.width = initial.width - value.translation.width
-                            newROI.size.height = initial.height + value.translation.height
+                            let deltaX = value.translation.width
+                            let deltaY = value.translation.height
+                            // For bottomLeft, horizontal: new width = initial.width - deltaX.
+                            let effectiveDeltaX: CGFloat = deltaX > 0 ? min(deltaX, initial.width - 100) : deltaX
+                            // Vertical: new height = initial.height + deltaY.
+                            let effectiveDeltaY: CGFloat = deltaY < 0 ? max(deltaY, 100 - initial.height) : deltaY
+                            
+                            newROI.origin.x = initial.origin.x + effectiveDeltaX
+                            newROI.size.width = initial.width - effectiveDeltaX
+                            // y remains unchanged.
+                            newROI.size.height = initial.height + effectiveDeltaY
                             
                         case .bottomRight:
-                            newROI.size.width = initial.width + value.translation.width
-                            newROI.size.height = initial.height + value.translation.height
+                            let deltaX = value.translation.width
+                            let deltaY = value.translation.height
+                            // For bottomRight, new width = initial.width + deltaX.
+                            let effectiveDeltaX: CGFloat = deltaX < 0 ? max(deltaX, 100 - initial.width) : deltaX
+                            // New height = initial.height + deltaY.
+                            let effectiveDeltaY: CGFloat = deltaY < 0 ? max(deltaY, 100 - initial.height) : deltaY
+                            
+                            // For bottomRight, origin remains the same.
+                            newROI.size.width = initial.width + effectiveDeltaX
+                            newROI.size.height = initial.height + effectiveDeltaY
                         }
                         
-                        // Enforce a minimum size (50 points).
-                        if newROI.size.width >= 50, newROI.size.height >= 50 {
-                            roi = newROI
-                        }
+                        roi = newROI
                     }
+
                     .onEnded { _ in
                         let newROI = clampROI(roi)
                         roi = newROI
@@ -143,7 +220,7 @@ struct AdjustableBoundingBox: View {
         }
     }
     
-    // Clamps the ROI so that its edges remain at least 'margin' points from the *container*.
+    // Clamps the ROI so that its edges remain at least 'margin' points from the container.
     private func clampROI(_ rect: CGRect) -> CGRect {
         let containerWidth = containerSize.width
         let containerHeight = containerSize.height
@@ -161,6 +238,16 @@ struct AdjustableBoundingBox: View {
             newRect.size.height = containerHeight - margin - newRect.origin.y
         }
         
+        // Enforce minimum size of 100 points.
+        newRect.size.width = max(newRect.size.width, 100)
+        newRect.size.height = max(newRect.size.height, 100)
+        
         return newRect
+    }
+}
+
+struct AdjustableBoundingBox_Previews: PreviewProvider {
+    static var previews: some View {
+        AdjustableBoundingBox(roi: .constant(CGRect(x: 100, y: 100, width: 200, height: 200)), containerSize: CGSize(width: 400, height: 800))
     }
 }

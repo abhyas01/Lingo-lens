@@ -36,7 +36,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         var nx = roi.origin.x / screenWidth
         
 //        var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight)
-        let yAdjustmentFactor: CGFloat = 0.35  // adjust this value as needed (10% of the ROI's height)
+        let yAdjustmentFactor: CGFloat = 0.15  // adjust this value as needed (10% of the ROI's height)
         var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight) - (roi.height / screenHeight) * yAdjustmentFactor
 
         var nw = roi.width  / screenWidth
