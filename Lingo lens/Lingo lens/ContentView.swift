@@ -71,9 +71,9 @@ struct ContentView: View {
                         }
                     }) {
                         Image(systemName: "gear")
-                            .font(.system(size: 24))
+                            .font(.system(size: 30))
                             .foregroundColor(.white)
-                            .padding(10)
+                            .padding(12)
                             .background(Color.black.opacity(0.5))
                             .clipShape(Circle())
                     }
@@ -126,7 +126,7 @@ struct ContentView: View {
                             .foregroundColor(.white)
                         
                         Slider(value: $arViewModel.annotationScale,
-                               in: 0.5...1.5,
+                               in: 0.2...3.5,
                                step: 0.1)
                         
                         Button(action: {

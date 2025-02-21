@@ -49,6 +49,8 @@ class ARViewModel: ObservableObject {
                 // Set the node's transform to match the anchor
                 annotationNode.simdTransform = result.worldTransform
                 
+                annotationNode.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
+                
                 // Add to tracking array
                 annotationNodes.append(annotationNode)
                 
