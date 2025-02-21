@@ -18,30 +18,25 @@ class ARViewModel: ObservableObject {
     func addAnnotation() {
         guard !detectedObjectName.isEmpty else { return }
         guard let sceneView = sceneView,
-              let currentFrame = sceneView.session.currentFrame else { return }
+              let _ = sceneView.session.currentFrame else { return }
 
-        // 1) Raycast from screen center
-        let centerPoint = CGPoint(x: sceneView.bounds.midX, y: sceneView.bounds.midY)
-        if let query = sceneView.raycastQuery(from: centerPoint, allowing: .estimatedPlane, alignment: .any) {
+        // Raycast from the center of the adjustable ROI instead of screen center
+        let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
+        
+        if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
             let results = sceneView.session.raycast(query)
             if let closestResult = results.first {
-                // 2) Convert transform -> position
+                // Create transform with proper camera-relative orientation
                 let transform = closestResult.worldTransform
                 let position = SCNVector3(transform.columns.3.x,
-                                          transform.columns.3.y,
-                                          transform.columns.3.z)
-
-                // 3) Create a parent node
+                                        transform.columns.3.y,
+                                        transform.columns.3.z)
+                
+                // Create parent node with proper orientation
                 let parentNode = SCNNode()
-                parentNode.position = position
-
-                // 4) Create the annotation node
-                let annotationNode = createCapsuleAnnotation(with: detectedObjectName)
-
-                // 5) Add annotation as child
-                parentNode.addChildNode(annotationNode)
-
-                // 6) Add to the scene
+                parentNode.simdTransform = closestResult.worldTransform
+                parentNode.addChildNode(createCapsuleAnnotation(with: detectedObjectName))
+                
                 sceneView.scene.rootNode.addChildNode(parentNode)
             }
         }
@@ -62,22 +57,21 @@ class ARViewModel: ObservableObject {
         let plane = SCNPlane(width: planeWidth, height: planeHeight)
         plane.cornerRadius = 0.015
         
-        // 2) Attach a normal SKScene (no inverted yScale).
+        // Fix material rendering
         plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: text, width: planeWidth, height: planeHeight)
-        plane.firstMaterial?.lightingModel = .constant
-        plane.firstMaterial?.isDoubleSided = false  // Usually only need front side
+        plane.firstMaterial?.isDoubleSided = true  // Allow viewing from both sides
         
         let planeNode = SCNNode(geometry: plane)
         
-        // 3) If text is upside down, rotate around X:
-        // planeNode.eulerAngles.x = .pi
-        //
-        // If text is mirrored left/right, rotate around Y:
-        planeNode.eulerAngles.y = .pi
+        // Position the plane slightly in front of the detected surface
+        planeNode.position.z += 0.01
         
-        // 4) Constrain so it faces camera horizontally
+        // Correct initial orientation (SceneKit planes face +Z by default)
+        planeNode.eulerAngles.x = -.pi / 2  // Rotate to face camera
+        
+        // Billboard constraints
         let billboard = SCNBillboardConstraint()
-        billboard.freeAxes = .Y
+        billboard.freeAxes = [.Y, .X]  // Rotate both X and Y to face camera
         planeNode.constraints = [billboard]
         
         return planeNode
