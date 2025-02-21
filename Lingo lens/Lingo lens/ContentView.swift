@@ -52,7 +52,7 @@ struct ContentView: View {
             VStack {
                 // When nothing is detected, show "Cannot detect, keep moving" in light red;
                 // when detected, show the detected name in light green.
-                let labelText = arViewModel.detectedObjectName.isEmpty ? "Object not detected. Fit it inside the box or move closer and expand." : arViewModel.detectedObjectName
+                let labelText = arViewModel.detectedObjectName.isEmpty ? "Couldn't detect. Keep moving, fit the object in the box, or move closer." : arViewModel.detectedObjectName
                 let labelBackground = arViewModel.detectedObjectName.isEmpty ? Color.red.opacity(0.8) : Color.green.opacity(0.8)
                 
                 Text(labelText)

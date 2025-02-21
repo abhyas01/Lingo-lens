@@ -15,7 +15,7 @@ class ObjectDetectionManager {
     private var visionModel: VNCoreMLModel?
     private let ciContext = CIContext() // Reuse a single CIContext for performance
     
-    // Adjust this if you want a bigger or smaller margin inside the user's bounding box.
+    // Adjust this for bigger or smaller margin inside the user's bounding box.
     private let insideMargin: CGFloat = 4
     
     init() {
