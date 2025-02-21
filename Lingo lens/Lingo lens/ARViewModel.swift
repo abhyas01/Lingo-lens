@@ -12,124 +12,206 @@ import SceneKit
 class ARViewModel: ObservableObject {
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
+    @Published var annotationScale: CGFloat = 1.0 {
+        didSet {
+            updateAllAnnotationScales()
+        }
+    }
 
     weak var sceneView: ARSCNView?
+    private var annotationNodes: [SCNNode] = []  // Track all annotation nodes
+
+    private func updateAllAnnotationScales() {
+        for node in annotationNodes {
+            // Apply new scale while maintaining aspect ratio
+            node.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
+        }
+    }
 
     func addAnnotation() {
         guard !detectedObjectName.isEmpty else { return }
         guard let sceneView = sceneView,
               let _ = sceneView.session.currentFrame else { return }
 
-        // Raycast from the center of the adjustable ROI instead of screen center
+        // Raycast from the center of the adjustable ROI
         let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
         
         if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
             let results = sceneView.session.raycast(query)
-            if let closestResult = results.first {
-                // Create transform with proper camera-relative orientation
-                let transform = closestResult.worldTransform
-                let position = SCNVector3(transform.columns.3.x,
-                                        transform.columns.3.y,
-                                        transform.columns.3.z)
+            if let result = results.first {
+                // Create annotation node
+                let annotationNode = createCapsuleAnnotation(with: detectedObjectName)
                 
-                // Create parent node with proper orientation
-                let parentNode = SCNNode()
-                parentNode.simdTransform = closestResult.worldTransform
-                parentNode.addChildNode(createCapsuleAnnotation(with: detectedObjectName))
+                // Create anchor and add it to the session
+                let anchor = ARAnchor(transform: result.worldTransform)
+                sceneView.session.add(anchor: anchor)
                 
-                sceneView.scene.rootNode.addChildNode(parentNode)
+                // Set the node's transform to match the anchor
+                annotationNode.simdTransform = result.worldTransform
+                
+                // Add to tracking array
+                annotationNodes.append(annotationNode)
+                
+                // Add to the scene
+                sceneView.scene.rootNode.addChildNode(annotationNode)
             }
         }
     }
 
+    // Reset annotations (useful when changing scenes or restarting)
+    func resetAnnotations() {
+        for node in annotationNodes {
+            node.removeFromParentNode()
+        }
+        annotationNodes.removeAll()
+    }
+
     private func createCapsuleAnnotation(with text: String) -> SCNNode {
-        // 1) Dynamically size the plane
-        let baseWidth: CGFloat = 0.16
+        // Base dimensions with extra space for chevron
+        let baseWidth: CGFloat = 0.18  // Reduced base width
         let extraWidthPerChar: CGFloat = 0.005
-        let maxTextWidth: CGFloat = 0.40
-        let minTextWidth: CGFloat = 0.16
+        let maxTextWidth: CGFloat = 0.40  // Reduced max width
+        let minTextWidth: CGFloat = 0.18
+        let planeHeight: CGFloat = 0.09  // Reduced height
         
         let textCount = CGFloat(text.count)
         let planeWidth = min(max(baseWidth + textCount * extraWidthPerChar, minTextWidth),
                              maxTextWidth)
-        let planeHeight: CGFloat = 0.08
         
         let plane = SCNPlane(width: planeWidth, height: planeHeight)
         plane.cornerRadius = 0.015
         
-        // Fix material rendering
         plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: text, width: planeWidth, height: planeHeight)
-        plane.firstMaterial?.isDoubleSided = true  // Allow viewing from both sides
+        plane.firstMaterial?.isDoubleSided = true
         
         let planeNode = SCNNode(geometry: plane)
+        let containerNode = SCNNode()
+        containerNode.addChildNode(planeNode)
+        planeNode.position = SCNVector3(0, 0.04, 0)
+        containerNode.eulerAngles.x = -Float.pi / 2
         
-        // Position the plane slightly in front of the detected surface
-        planeNode.position.z += 0.01
+        // Apply scale from slider
+        containerNode.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
         
-        // Correct initial orientation (SceneKit planes face +Z by default)
-        planeNode.eulerAngles.x = -.pi / 2  // Rotate to face camera
-        
-        // Billboard constraints
         let billboard = SCNBillboardConstraint()
-        billboard.freeAxes = [.Y, .X]  // Rotate both X and Y to face camera
-        planeNode.constraints = [billboard]
+        billboard.freeAxes = .Y
+        containerNode.constraints = [billboard]
         
-        return planeNode
+        return containerNode
     }
-
+    
     private func makeCapsuleSKScene(with text: String, width: CGFloat, height: CGFloat) -> SKScene {
         let sceneSize = CGSize(width: 400, height: 140)
         let scene = SKScene(size: sceneSize)
+        scene.scaleMode = .aspectFit
         scene.backgroundColor = .clear
         
-        // 1) Rounded rectangle background (capsule style)
+        // Background
         let bgRect = CGRect(origin: .zero, size: sceneSize)
         let background = SKShapeNode(rect: bgRect, cornerRadius: 50)
         background.fillColor = .white
         background.strokeColor = .clear
         scene.addChild(background)
         
-        // 2) Possibly break text into lines
-        let lines = breakTextIntoLines(text, maxLineLen: 18)
-        let lineHeight: CGFloat = 40
-        let totalTextHeight = CGFloat(lines.count) * lineHeight
-        let centerY = (sceneSize.height - totalTextHeight) / 2 + lineHeight / 2
+        // Container for flipped content
+        let containerNode = SKNode()
+        containerNode.setScale(1.0)
+        containerNode.yScale = -1
+        scene.addChild(containerNode)
         
-        // 3) Add each line as SKLabelNode
-        for (i, line) in lines.enumerated() {
+        // Add chevron indicator
+        let chevron = SKLabelNode(fontNamed: "SF Pro")
+        chevron.text = "›"
+        chevron.fontSize = 36
+        chevron.fontColor = .gray
+        chevron.verticalAlignmentMode = .center
+        chevron.horizontalAlignmentMode = .center
+        chevron.position = CGPoint(x: sceneSize.width - 40, y: -sceneSize.height/2)
+        containerNode.addChild(chevron)
+        
+        // Process text with max characters and line limit
+        let processedLines = processTextIntoLines(text, maxCharsPerLine: 20)
+        let lineHeight: CGFloat = 40
+        let totalTextHeight = CGFloat(processedLines.count) * lineHeight
+        let startY = (sceneSize.height + totalTextHeight) / 2 - lineHeight / 2
+        
+        // Add text lines
+        for (i, line) in processedLines.enumerated() {
             let label = SKLabelNode(fontNamed: "Helvetica-Bold")
             label.text = line
-            label.fontSize = lines.count > 3 ? 24 : (lines.count > 2 ? 30 : 36)
+            label.fontSize = 32  // Consistent font size
             label.fontColor = .black
             label.verticalAlignmentMode = .center
             label.horizontalAlignmentMode = .center
-            label.position = CGPoint(x: sceneSize.width / 2,
-                                     y: centerY + CGFloat(lines.count - 1 - i) * lineHeight)
-            scene.addChild(label)
+            
+            let yPosition = startY - (CGFloat(i) * lineHeight)
+            label.position = CGPoint(
+                x: (sceneSize.width - 40) / 2,  // Shifted left to account for chevron
+                y: -yPosition
+            )
+            containerNode.addChild(label)
         }
         
         return scene
     }
 
-
-    private func breakTextIntoLines(_ text: String, maxLineLen: Int) -> [String] {
+    private func processTextIntoLines(_ text: String, maxCharsPerLine: Int) -> [String] {
         var lines = [String]()
+        var words = text.split(separator: " ").map(String.init)
         var currentLine = ""
-        for word in text.split(separator: " ") {
-            let candidate = currentLine.isEmpty ? String(word)
-                                                : currentLine + " " + word
-            if candidate.count > maxLineLen {
-                if !currentLine.isEmpty {
-                    lines.append(currentLine)
-                }
-                currentLine = String(word)
+        
+        let ellipsis = "..."  // Define ellipsis constant
+        
+        // Only process up to 2 lines
+        while !words.isEmpty && lines.count < 2 {
+            let word = words[0]
+            let testLine = currentLine.isEmpty ? word : currentLine + " " + word
+            
+            if testLine.count <= maxCharsPerLine {
+                currentLine = testLine
+                words.removeFirst()
             } else {
-                currentLine = candidate
+                // If this is the last allowed line and we have more words
+                if lines.count == 1 {
+                    // Add ellipsis to the current line if it's not empty
+                    if !currentLine.isEmpty {
+                        currentLine = currentLine.trimmingCharacters(in: .whitespaces)
+                        if currentLine.count > maxCharsPerLine - ellipsis.count {
+                            currentLine = String(currentLine.prefix(maxCharsPerLine - ellipsis.count)) + ellipsis
+                        } else {
+                            currentLine += ellipsis
+                        }
+                    }
+                    break
+                } else {
+                    if !currentLine.isEmpty {
+                        lines.append(currentLine)
+                        currentLine = ""
+                    } else {
+                        currentLine = String(word.prefix(maxCharsPerLine))
+                        words.removeFirst()
+                    }
+                }
             }
         }
+        
+        // Add the last line if we have one
         if !currentLine.isEmpty {
             lines.append(currentLine)
         }
-        return lines
+        
+        // If we still have words left and we're under 2 lines, add ellipsis
+        if !words.isEmpty && lines.count <= 2 {
+            let lastIndex = lines.count - 1
+            var lastLine = lines[lastIndex]
+            if lastLine.count > maxCharsPerLine - ellipsis.count {
+                lastLine = String(lastLine.prefix(maxCharsPerLine - ellipsis.count)) + ellipsis
+            } else {
+                lastLine += ellipsis
+            }
+            lines[lastIndex] = lastLine
+        }
+        
+        return lines.reversed()
     }
 }
