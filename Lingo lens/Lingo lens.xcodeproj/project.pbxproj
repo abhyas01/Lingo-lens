@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		7D999E722D656B130011DC75 /* Lingo lens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Lingo lens.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7DA155492D6958D80099A14D /* Translation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Translation.framework; path = System/Library/Frameworks/Translation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,6 +34,7 @@
 			isa = PBXGroup;
 			children = (
 				7D999E742D656B130011DC75 /* Lingo lens */,
+				7DA155482D6958D80099A14D /* Frameworks */,
 				7D999E732D656B130011DC75 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +45,14 @@
 				7D999E722D656B130011DC75 /* Lingo lens.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7DA155482D6958D80099A14D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7DA155492D6958D80099A14D /* Translation.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -255,6 +265,7 @@
 				DEVELOPMENT_TEAM = 92KLD58G24;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Lingo-lens-Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need to use camera for object detection";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -285,6 +296,7 @@
 				DEVELOPMENT_TEAM = 92KLD58G24;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Lingo-lens-Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need to use camera for object detection";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

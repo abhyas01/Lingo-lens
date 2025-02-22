@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject private var arViewModel = ARViewModel()
     @State private var previousSize: CGSize = .zero
     @State private var isSettingsExpanded = false
+    @State private var showLanguageSelection = false
 
     var body: some View {
         ZStack {
@@ -46,7 +47,7 @@ struct ContentView: View {
             }
             
             VStack {
-                // Detection label
+                // Detection label (always in English)
                 let labelText = arViewModel.detectedObjectName.isEmpty ?
                     "Couldn't detect. Keep moving, fit the object in the box, or move closer." :
                     arViewModel.detectedObjectName
@@ -101,7 +102,7 @@ struct ContentView: View {
                 }
             }
             
-            // Settings Panel with new positioning and animation
+            // Settings Panel
             if isSettingsExpanded {
                 VStack {
                     HStack {
@@ -121,14 +122,40 @@ struct ContentView: View {
                     }
                     .padding(.bottom)
                     
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Annotation Size")
-                            .foregroundColor(.white)
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Language Selection
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Language")
+                                .foregroundColor(.white)
+                            
+                            Button(action: {
+                                showLanguageSelection = true
+                            }) {
+                                HStack {
+                                    Text(arViewModel.selectedLanguage.name)
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.white)
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.blue.opacity(0.3))
+                                .cornerRadius(8)
+                            }
+                        }
                         
-                        Slider(value: $arViewModel.annotationScale,
-                               in: 0.2...3.5,
-                               step: 0.1)
+                        // Annotation Size
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Annotation Size")
+                                .foregroundColor(.white)
+                            
+                            Slider(value: $arViewModel.annotationScale,
+                                   in: 0.2...3.5,
+                                   step: 0.1)
+                        }
                         
+                        // Clear All Annotations
                         Button(action: {
                             arViewModel.resetAnnotations()
                         }) {
@@ -148,14 +175,18 @@ struct ContentView: View {
                 .background(Color.black.opacity(0.8))
                 .cornerRadius(15)
                 .frame(width: 300)
-                .position(x: 160, y: UIScreen.main.bounds.height - 200)  // Positioned above the settings button
-                .transition(
-                    .asymmetric(
-                        insertion: .opacity.combined(with: .offset(x: 0, y: 50)),
-                        removal: .opacity.combined(with: .offset(x: 0, y: 50))
-                    )
-                )
+                .position(x: 160, y: UIScreen.main.bounds.height - 200)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .offset(x: 0, y: 50)),
+                    removal: .opacity.combined(with: .offset(x: 0, y: 50))
+                ))
             }
+        }
+        .sheet(isPresented: $showLanguageSelection) {
+            LanguageSelectionView(
+                selectedLanguage: $arViewModel.selectedLanguage,
+                isPresented: $showLanguageSelection
+            )
         }
     }
 }
