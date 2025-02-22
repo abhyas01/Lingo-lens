@@ -36,11 +36,11 @@ struct ContentView: View {
                         }
                         previousSize = geo.size
                     }
-                    .onChange(of: geo.size) { newSize in
-                        guard newSize != previousSize else { return }
+                    .onChange(of: geo.size) {
+                        guard geo.size != previousSize else { return }
                         arViewModel.adjustableROI = arViewModel.adjustableROI
-                            .resizedAndClamped(from: previousSize, to: newSize)
-                        previousSize = newSize
+                            .resizedAndClamped(from: previousSize, to: geo.size)
+                        previousSize = geo.size
                     }
                 
                 AdjustableBoundingBox(
@@ -52,17 +52,20 @@ struct ContentView: View {
             VStack {
                 // Detection label (always in English)
                 let labelText = arViewModel.detectedObjectName.isEmpty ?
-                    "Couldn't detect. Keep moving, fit the object in the box, or move closer." :
+                    "Couldn't detect. Keep moving / Fit the object in the box / Move closer." :
                     arViewModel.detectedObjectName
+              
                 let labelBackground = arViewModel.detectedObjectName.isEmpty ?
                     Color.red.opacity(0.8) :
                     Color.green.opacity(0.8)
                 
                 Text(labelText)
+                    .font(.title3)
+                    .fontWeight(.medium)
                     .padding(8)
                     .background(labelBackground)
                     .foregroundColor(.white)
-                    .cornerRadius(8)
+                    .cornerRadius(10)
                     .padding(.top, 50)
                     .padding(.horizontal)
                 
@@ -91,18 +94,14 @@ struct ContentView: View {
                     
                     // Plus button: add an annotation and immediately present the detail view.
                     Button(action: {
-                        // Ensure we have a valid detected text; if empty, fallback to a default.
-                        let textToTranslate = arViewModel.detectedObjectName.isEmpty ? "Hello" : arViewModel.detectedObjectName
-                        arViewModel.addAnnotation()
-                        // Immediately set the selected annotation text and show the detail view.
-                        arViewModel.selectedAnnotationText = textToTranslate
-                        arViewModel.isShowingAnnotationDetail = true
+                        guard !arViewModel.detectedObjectName.isEmpty else { return }
+                         arViewModel.addAnnotation()
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .resizable()
                             .frame(width: 60, height: 60)
                             .foregroundColor(arViewModel.detectedObjectName.isEmpty ?
-                                Color.gray.opacity(0.5) :
+                                Color.red.opacity(0.4) :
                                 Color.blue)
                             .padding()
                     }

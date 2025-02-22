@@ -56,18 +56,57 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
-    // Tap handler to detect when an annotation is tapped.
+
     @objc func handleTap(_ gesture: UITapGestureRecognizer) {
         guard let sceneView = arViewModel.sceneView else { return }
         let location = gesture.location(in: sceneView)
-        let hitResults = sceneView.hitTest(location, options: nil)
-        if let hitResult = hitResults.first {
-            if let tappedAnnotation = arViewModel.annotationNodes.first(where: { tuple in
-                return tuple.node == hitResult.node || tuple.node.childNodes.contains(hitResult.node)
-            }) {
-                arViewModel.selectedAnnotationText = tappedAnnotation.originalText
-                arViewModel.isShowingAnnotationDetail = true
+        
+        var closestAnnotation: (distance: CGFloat, text: String)? = nil
+
+        for annotation in arViewModel.annotationNodes {
+            guard let planeNode = annotation.node.childNode(withName: "annotationPlane", recursively: false),
+                  let plane = planeNode.geometry as? SCNPlane,
+                  let material = plane.firstMaterial,
+                  let skScene = material.diffuse.contents as? SKScene else { continue }
+
+            let hitResults = sceneView.hitTest(location, options: [
+                .boundingBoxOnly: false,
+                .searchMode: SCNHitTestSearchMode.all.rawValue
+            ])
+            
+            guard let hitResult = hitResults.first(where: { $0.node == planeNode }) else { continue }
+            
+            let localPoint = hitResult.localCoordinates
+            let normalizedX = (CGFloat(localPoint.x) / CGFloat(plane.width)) + 0.5
+            let normalizedY = (CGFloat(localPoint.y) / CGFloat(plane.height)) + 0.5
+            
+            let capsuleSize = skScene.size
+            let cornerRadius: CGFloat = 50
+            let skPoint = CGPoint(x: normalizedX * capsuleSize.width,
+                                y: (1 - normalizedY) * capsuleSize.height)
+            
+            let path = UIBezierPath(roundedRect: CGRect(origin: .zero, size: capsuleSize),
+                                  cornerRadius: cornerRadius)
+            
+            if path.contains(skPoint) {
+                let worldPos = planeNode.worldPosition
+                let projectedCenter = sceneView.projectPoint(worldPos)
+                let center = CGPoint(x: CGFloat(projectedCenter.x), y: CGFloat(projectedCenter.y))
+                let dx = center.x - location.x
+                let dy = center.y - location.y
+                let distance = hypot(dx, dy)
+                
+                if closestAnnotation == nil || distance < closestAnnotation!.distance {
+                    closestAnnotation = (distance, annotation.originalText)
+                }
             }
         }
+        
+        if let closest = closestAnnotation {
+            arViewModel.selectedAnnotationText = closest.text
+            arViewModel.isShowingAnnotationDetail = true
+        }
+
     }
+
 }

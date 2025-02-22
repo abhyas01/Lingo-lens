@@ -17,26 +17,31 @@ class ARViewModel: ObservableObject {
             updateAllAnnotationScales()
         }
     }
-    // Use AvailableLanguage from the Translation API.
-    @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "US"))
+    
+    @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
     
     weak var sceneView: ARSCNView?
-    // Internal annotation nodes array.
-    var annotationNodes: [(node: SCNNode, originalText: String)] = []
     
-    // Properties for annotation detail sheet.
+    var annotationNodes: [(node: SCNNode, originalText: String, worldPos: SIMD3<Float>)] = []
+    
     @Published var selectedAnnotationText: String?
     @Published var isShowingAnnotationDetail: Bool = false
     
     private func updateAllAnnotationScales() {
-        for (node, _) in annotationNodes {
+        for (node, _, _) in annotationNodes {
             node.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
         }
     }
+
     
     // Create an annotation using the original (English) text.
     func addAnnotation() {
-        guard !detectedObjectName.isEmpty else { return }
+        
+        guard !detectedObjectName.isEmpty,
+              !detectedObjectName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return
+        }
+        
         guard let sceneView = sceneView,
               sceneView.session.currentFrame != nil else { return }
         
@@ -46,12 +51,14 @@ class ARViewModel: ObservableObject {
             let results = sceneView.session.raycast(query)
             if let result = results.first {
                 DispatchQueue.main.async {
+                    guard !self.detectedObjectName.isEmpty else { return }
+                    
                     let annotationNode = self.createCapsuleAnnotation(with: self.detectedObjectName)
-                    let anchor = ARAnchor(transform: result.worldTransform)
-                    sceneView.session.add(anchor: anchor)
                     annotationNode.simdTransform = result.worldTransform
-                    annotationNode.scale = SCNVector3(self.annotationScale, self.annotationScale, self.annotationScale)
-                    self.annotationNodes.append((annotationNode, self.detectedObjectName))
+                    let worldPos = SIMD3<Float>(result.worldTransform.columns.3.x,
+                                               result.worldTransform.columns.3.y,
+                                               result.worldTransform.columns.3.z)
+                    self.annotationNodes.append((annotationNode, self.detectedObjectName, worldPos))
                     sceneView.scene.rootNode.addChildNode(annotationNode)
                 }
             }
@@ -59,31 +66,39 @@ class ARViewModel: ObservableObject {
     }
     
     func resetAnnotations() {
-        for (node, _) in annotationNodes {
+        for (node, _, _) in annotationNodes {
             node.removeFromParentNode()
         }
         annotationNodes.removeAll()
     }
-    
+
     private func createCapsuleAnnotation(with text: String) -> SCNNode {
+        let validatedText = text.isEmpty ? "Unknown Object" : text
+
         let baseWidth: CGFloat = 0.18
         let extraWidthPerChar: CGFloat = 0.005
         let maxTextWidth: CGFloat = 0.40
         let minTextWidth: CGFloat = 0.18
         let planeHeight: CGFloat = 0.09
         
-        let textCount = CGFloat(text.count)
+        let textCount = CGFloat(validatedText.count)
         let planeWidth = min(max(baseWidth + textCount * extraWidthPerChar, minTextWidth),
                              maxTextWidth)
         
         let plane = SCNPlane(width: planeWidth, height: planeHeight)
         plane.cornerRadius = 0.015
         
-        plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: text, width: planeWidth, height: planeHeight)
+        plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: validatedText, width: planeWidth, height: planeHeight)
         plane.firstMaterial?.isDoubleSided = true
         
         let planeNode = SCNNode(geometry: plane)
+        planeNode.name = "annotationPlane"
+        planeNode.categoryBitMask = 1
+
         let containerNode = SCNNode()
+        containerNode.name = "annotationContainer"
+        containerNode.categoryBitMask = 1
+        
         containerNode.addChildNode(planeNode)
         planeNode.position = SCNVector3(0, 0.04, 0)
         containerNode.eulerAngles.x = -Float.pi / 2

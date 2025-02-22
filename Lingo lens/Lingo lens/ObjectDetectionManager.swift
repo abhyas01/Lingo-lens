@@ -15,7 +15,6 @@ class ObjectDetectionManager {
     private var visionModel: VNCoreMLModel?
     private let ciContext = CIContext() // Reuse a single CIContext for performance
     
-    // Adjust this for bigger or smaller margin inside the user's bounding box.
     private let insideMargin: CGFloat = 4
     
     init() {
@@ -28,7 +27,7 @@ class ObjectDetectionManager {
         }
     }
     
-    // The physically-cropping version with a small inside margin.
+    
     func detectObjectCropped(pixelBuffer: CVPixelBuffer,
                              exifOrientation: CGImagePropertyOrientation,
                              normalizedROI: CGRect,

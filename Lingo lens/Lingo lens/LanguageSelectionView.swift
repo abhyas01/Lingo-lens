@@ -36,6 +36,17 @@ struct LanguageSelectionView: View {
                     tempSelectedLanguage = language
                 }
             }
+            
+            .onChange(of: translationService.availableLanguages) {
+                if !translationService.availableLanguages.contains(where: { $0.shortName() == tempSelectedLanguage.shortName() }) {
+                    tempSelectedLanguage = translationService.availableLanguages.first ?? tempSelectedLanguage
+                }
+            }
+            
+            .onAppear {
+                tempSelectedLanguage = selectedLanguage
+            }
+            
             .navigationTitle("Select Language")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

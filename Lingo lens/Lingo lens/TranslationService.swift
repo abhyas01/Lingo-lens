@@ -30,10 +30,10 @@ class TranslationService: ObservableObject {
     func getSupportedLanguages() {
         Task { @MainActor in
             let supportedLanguages = await LanguageAvailability().supportedLanguages
-            availableLanguages = supportedLanguages.map { locale in
-                AvailableLanguage(locale: locale)
-            }
-            .sorted()
+            availableLanguages = supportedLanguages
+                .filter { $0.languageCode != "en" }
+                .map { AvailableLanguage(locale: $0) }
+                .sorted()
         }
     }
     
