@@ -10,6 +10,7 @@ import ARKit
 import SceneKit
 
 class ARViewModel: ObservableObject {
+    @Published var isDetectionActive = true
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
     @Published var annotationScale: CGFloat = 1.0 {

@@ -14,7 +14,6 @@ struct ContentView: View {
     @State private var isSettingsExpanded = false
     @State private var showLanguageSelection = false
     
-    // Access the translation service from the environment.
     @EnvironmentObject var translationService: TranslationService
 
     var body: some View {
@@ -22,56 +21,63 @@ struct ContentView: View {
             ARViewContainer(arViewModel: arViewModel)
                 .edgesIgnoringSafeArea(.all)
             
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear {
-                        if arViewModel.adjustableROI == .zero {
-                            let boxSize: CGFloat = 200
-                            arViewModel.adjustableROI = CGRect(
-                                x: (geo.size.width - boxSize) / 2,
-                                y: (geo.size.height - boxSize) / 2,
-                                width: boxSize,
-                                height: boxSize
-                            )
+            // Conditional bounding box display
+            if arViewModel.isDetectionActive {
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear {
+                            if arViewModel.adjustableROI == .zero {
+                                let boxSize: CGFloat = 200
+                                arViewModel.adjustableROI = CGRect(
+                                    x: (geo.size.width - boxSize) / 2,
+                                    y: (geo.size.height - boxSize) / 2,
+                                    width: boxSize,
+                                    height: boxSize
+                                )
+                            }
+                            previousSize = geo.size
                         }
-                        previousSize = geo.size
-                    }
-                    .onChange(of: geo.size) {
-                        guard geo.size != previousSize else { return }
-                        arViewModel.adjustableROI = arViewModel.adjustableROI
-                            .resizedAndClamped(from: previousSize, to: geo.size)
-                        previousSize = geo.size
-                    }
-                
-                AdjustableBoundingBox(
-                    roi: $arViewModel.adjustableROI,
-                    containerSize: geo.size
-                )
+                        .onChange(of: geo.size) {
+                            guard geo.size != previousSize else { return }
+                            arViewModel.adjustableROI = arViewModel.adjustableROI
+                                .resizedAndClamped(from: previousSize, to: geo.size)
+                            previousSize = geo.size
+                        }
+                    
+                    AdjustableBoundingBox(
+                        roi: $arViewModel.adjustableROI,
+                        containerSize: geo.size
+                    )
+                }
             }
             
             VStack {
-                // Detection label (always in English)
-                let labelText = arViewModel.detectedObjectName.isEmpty ?
+                // Detection label
+                if arViewModel.isDetectionActive {
+                    let labelText = arViewModel.detectedObjectName.isEmpty ?
                     "Couldn't detect. Keep moving / Fit the object in the box / Move closer." :
                     arViewModel.detectedObjectName
-              
-                let labelBackground = arViewModel.detectedObjectName.isEmpty ?
+                    
+                    let labelBackground = arViewModel.detectedObjectName.isEmpty ?
                     Color.red.opacity(0.8) :
                     Color.green.opacity(0.8)
-                
-                Text(labelText)
-                    .font(.title3)
-                    .fontWeight(.medium)
-                    .padding(8)
-                    .background(labelBackground)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding(.top, 50)
-                    .padding(.horizontal)
+                    
+                    Text(labelText)
+                        .font(.title3)
+                        .fontWeight(.medium)
+                        .padding(8)
+                        .background(labelBackground)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.top, 50)
+                        .padding(.horizontal)
+                }
                 
                 Spacer()
                 
+                // Bottom control bar
                 HStack {
+                    // Settings button
                     Button(action: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                             isSettingsExpanded.toggle()
@@ -92,24 +98,45 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Plus button: add an annotation and immediately present the detail view.
+                    // Detection toggle button
+                    Button(action: {
+                        arViewModel.isDetectionActive.toggle()
+                        if !arViewModel.isDetectionActive {
+                            arViewModel.detectedObjectName = ""
+                        }
+                    }) {
+                        Text(arViewModel.isDetectionActive ?
+                             "Stop Detection" : "Start Detection")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .frame(minWidth: 140)
+                            .background(arViewModel.isDetectionActive ?
+                                      Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                            .cornerRadius(12)
+                    }
+                    
+                    Spacer()
+                    
+                    // Add annotation button
                     Button(action: {
                         guard !arViewModel.detectedObjectName.isEmpty else { return }
-                         arViewModel.addAnnotation()
+                        arViewModel.addAnnotation()
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .resizable()
                             .frame(width: 60, height: 60)
-                            .foregroundColor(arViewModel.detectedObjectName.isEmpty ?
-                                Color.red.opacity(0.4) :
-                                Color.blue)
+                            .foregroundColor(
+                                arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive ?
+                                Color.gray : Color.blue
+                            )
                             .padding()
                     }
-                    .disabled(arViewModel.detectedObjectName.isEmpty)
+                    .disabled(arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive)
                 }
             }
             
-            // Settings Panel
+            // Settings panel
             if isSettingsExpanded {
                 VStack {
                     HStack {
@@ -130,7 +157,7 @@ struct ContentView: View {
                     .padding(.bottom)
                     
                     VStack(alignment: .leading, spacing: 16) {
-                        // Language Selection
+                        // Language selection
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Language")
                                 .foregroundColor(.white)
@@ -152,7 +179,7 @@ struct ContentView: View {
                             }
                         }
                         
-                        // Annotation Size
+                        // Annotation size control
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Annotation Size")
                                 .foregroundColor(.white)
@@ -162,7 +189,7 @@ struct ContentView: View {
                                    step: 0.1)
                         }
                         
-                        // Clear All Annotations
+                        // Clear annotations button
                         Button(action: {
                             arViewModel.resetAnnotations()
                         }) {
@@ -189,7 +216,6 @@ struct ContentView: View {
                 ))
             }
         }
-        // Language selection sheet.
         .sheet(isPresented: $showLanguageSelection) {
             LanguageSelectionView(
                 selectedLanguage: $arViewModel.selectedLanguage,
@@ -197,7 +223,6 @@ struct ContentView: View {
             )
             .environmentObject(translationService)
         }
-        // Annotation detail sheet presented when isShowingAnnotationDetail is true.
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {
             if let originalText = arViewModel.selectedAnnotationText {
                 AnnotationDetailView(originalText: originalText, targetLanguage: arViewModel.selectedLanguage)

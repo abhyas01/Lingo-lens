@@ -20,7 +20,8 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
-        guard let sceneView = arViewModel.sceneView else { return }
+        guard arViewModel.isDetectionActive,
+              let sceneView = arViewModel.sceneView else { return }
         
         let pixelBuffer = frame.capturedImage
         
@@ -105,6 +106,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         if let closest = closestAnnotation {
             arViewModel.selectedAnnotationText = closest.text
             arViewModel.isShowingAnnotationDetail = true
+            arViewModel.isDetectionActive = false
         }
 
     }
