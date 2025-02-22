@@ -36,11 +36,11 @@ struct ContentView: View {
                         }
                         previousSize = geo.size
                     }
-                    .onChange(of: geo.size) {
-                        guard geo.size != previousSize else { return }
+                    .onChange(of: geo.size) { newSize in
+                        guard newSize != previousSize else { return }
                         arViewModel.adjustableROI = arViewModel.adjustableROI
-                            .resizedAndClamped(from: previousSize, to: geo.size)
-                        previousSize = geo.size
+                            .resizedAndClamped(from: previousSize, to: newSize)
+                        previousSize = newSize
                     }
                 
                 AdjustableBoundingBox(
@@ -89,9 +89,14 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Plus button to add an annotation.
+                    // Plus button: add an annotation and immediately present the detail view.
                     Button(action: {
+                        // Ensure we have a valid detected text; if empty, fallback to a default.
+                        let textToTranslate = arViewModel.detectedObjectName.isEmpty ? "Hello" : arViewModel.detectedObjectName
                         arViewModel.addAnnotation()
+                        // Immediately set the selected annotation text and show the detail view.
+                        arViewModel.selectedAnnotationText = textToTranslate
+                        arViewModel.isShowingAnnotationDetail = true
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .resizable()
@@ -193,7 +198,7 @@ struct ContentView: View {
             )
             .environmentObject(translationService)
         }
-        // Annotation detail sheet shown when an annotation is tapped.
+        // Annotation detail sheet presented when isShowingAnnotationDetail is true.
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {
             if let originalText = arViewModel.selectedAnnotationText {
                 AnnotationDetailView(originalText: originalText, targetLanguage: arViewModel.selectedLanguage)

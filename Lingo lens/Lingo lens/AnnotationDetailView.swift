@@ -5,16 +5,24 @@
 //  Created by Abhyas Mall on 2/21/25.
 //
 
-
 import SwiftUI
 import Translation
 import AVFoundation
 
 struct AnnotationDetailView: View {
     @EnvironmentObject var translationService: TranslationService
+    /// The original text is always in English (from object detection)
     let originalText: String
+    /// The target language selected by the user (default is Spanish)
     let targetLanguage: AvailableLanguage
-    // No need to store the session; we only keep the configuration.
+
+    // Local state for the translated text.
+    @State private var translatedText: String = ""
+    // State to indicate translation progress.
+    @State private var isTranslating: Bool = false
+    // Trigger flag to launch the hidden translationTask.
+    @State private var shouldTranslate: Bool = false
+    // Translation configuration; will be set in onAppear.
     @State private var configuration: TranslationSession.Configuration?
 
     var body: some View {
@@ -22,48 +30,72 @@ struct AnnotationDetailView: View {
             Text("Original: \(originalText)")
                 .font(.headline)
             
-            // Use the translationTask view modifier, which provides a TranslationSession instance.
-            Text(translationService.translatedText)
-                .italic()
-                .multilineTextAlignment(.center)
-                .padding()
-                .translationTask(configuration) { session in
-                    do {
-                        try await translationService.translate(text: originalText, using: session)
-                    } catch {
-                        print("Translation error: \(error)")
-                    }
-                }
+            if !translatedText.isEmpty {
+                Text("Translated:")
+                    .font(.subheadline)
+                Text(translatedText)
+                    .italic()
+                    .multilineTextAlignment(.center)
+                    .padding()
+            }
             
-            Button(action: {
-                let utterance = AVSpeechUtterance(string: translationService.translatedText)
-                // Use our AvailableLanguage's shortName() to produce a BCP-47 string.
-                let langCode = targetLanguage.shortName()
-                utterance.voice = AVSpeechSynthesisVoice(language: langCode)
-                AVSpeechSynthesizer().speak(utterance)
-            }) {
-                Label("Hear Pronunciation", systemImage: "speaker.wave.2")
+            if isTranslating {
+                ProgressView("Translating...")
+            }
+            
+            // Button to trigger translation.
+            Button("Translate") {
+                guard configuration != nil else { return }
+                isTranslating = true
+                shouldTranslate = true
             }
             .buttonStyle(.borderedProminent)
+            .foregroundStyle(.white)
+            .disabled(isTranslating || originalText.isEmpty)
+            
+            // Once translated, show a button to hear pronunciation.
+            if !translatedText.isEmpty {
+                Button(action: {
+                    let utterance = AVSpeechUtterance(string: translatedText)
+                    let langCode = targetLanguage.shortName() // e.g. "es-US"
+                    utterance.voice = AVSpeechSynthesisVoice(language: langCode)
+                    AVSpeechSynthesizer().speak(utterance)
+                }) {
+                    Label("Hear Pronunciation", systemImage: "speaker.wave.2.fill")
+                }
+                .buttonStyle(.borderedProminent)
+            }
             
             Spacer()
         }
         .padding()
         .onAppear {
-            // Initialize configuration if needed.
             if configuration == nil {
-                configuration = TranslationSession.Configuration(target: targetLanguage.locale)
+                // Initialize the configuration with the source and target languages
+                configuration = TranslationSession.Configuration(
+                    source: translationService.sourceLanguage,
+                    target: targetLanguage.locale
+                )
             }
         }
-    }
-}
-
-struct AnnotationDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        AnnotationDetailView(
-            originalText: "Hello World",
-            targetLanguage: AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "US"))
+        .background(
+            Group {
+                if shouldTranslate, let config = configuration {
+                    Text("")
+                        .translationTask(config) { session in
+                            do {
+                                try await translationService.translate(text: originalText, using: session)
+                                translatedText = translationService.translatedText
+                            } catch {
+                                translatedText = "Translation error"
+                                print("Translation error: \(error)")
+                            }
+                            isTranslating = false
+                            shouldTranslate = false
+                        }
+                }
+            }
+            .hidden()
         )
-        .environmentObject(TranslationService())
     }
 }

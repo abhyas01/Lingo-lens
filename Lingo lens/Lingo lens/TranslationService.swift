@@ -20,6 +20,9 @@ class TranslationService: ObservableObject {
     @Published var translatedText = ""
     @Published var availableLanguages: [AvailableLanguage] = []
     
+    // Add a property for the source language (English)
+    let sourceLanguage = Locale.Language(languageCode: "en")
+    
     init() {
         getSupportedLanguages()
     }
@@ -34,6 +37,7 @@ class TranslationService: ObservableObject {
         }
     }
     
+    @MainActor
     func translate(text: String, using session: TranslationSession) async throws {
         let response = try await session.translate(text)
         translatedText = response.targetText
