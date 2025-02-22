@@ -9,7 +9,6 @@ import SwiftUI
 import ARKit
 import SceneKit
 
-@MainActor
 class ARViewModel: ObservableObject {
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
@@ -18,11 +17,9 @@ class ARViewModel: ObservableObject {
             updateAllAnnotationScales()
         }
     }
-    @Published var selectedLanguage: Language = Language.supportedLanguages.first(where: { $0.code == "es-ES" })! {
+    @Published var selectedLanguage: Language = Language.supportedLanguages.first(where: { $0.code == "es" })! {
         didSet {
-            Task {
-                await translateAllAnnotations()
-            }
+            translateAllAnnotations()
         }
     }
 
@@ -35,20 +32,20 @@ class ARViewModel: ObservableObject {
         }
     }
     
-    private func translateAllAnnotations() async {
+    private func translateAllAnnotations() {
         for (node, originalText) in annotationNodes {
-            do {
-                let translatedText = try await TranslationManager.shared.translate(originalText, to: selectedLanguage)
-                if let planeNode = node.childNodes.first {
-                    let plane = planeNode.geometry as? SCNPlane
-                    plane?.firstMaterial?.diffuse.contents = self.makeCapsuleSKScene(
-                        with: translatedText,
-                        width: plane?.width ?? 0.18,
-                        height: plane?.height ?? 0.09
-                    )
+            TranslationManager.shared.translate(originalText, to: selectedLanguage) { [weak self] translatedText in
+                DispatchQueue.main.async {
+                    guard let self = self, let translatedText = translatedText else { return }
+                    if let planeNode = node.childNodes.first {
+                        let plane = planeNode.geometry as? SCNPlane
+                        plane?.firstMaterial?.diffuse.contents = self.makeCapsuleSKScene(
+                            with: translatedText,
+                            width: plane?.width ?? 0.18,
+                            height: plane?.height ?? 0.09
+                        )
+                    }
                 }
-            } catch {
-                print("Translation failed: \(error.localizedDescription)")
             }
         }
     }
@@ -63,9 +60,9 @@ class ARViewModel: ObservableObject {
         if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
             let results = sceneView.session.raycast(query)
             if let result = results.first {
-                Task {
-                    do {
-                        let translatedText = try await TranslationManager.shared.translate(detectedObjectName, to: selectedLanguage)
+                TranslationManager.shared.translate(detectedObjectName, to: selectedLanguage) { [weak self] translatedText in
+                    guard let self = self, let translatedText = translatedText else { return }
+                    DispatchQueue.main.async {
                         let annotationNode = self.createCapsuleAnnotation(with: translatedText)
                         let anchor = ARAnchor(transform: result.worldTransform)
                         sceneView.session.add(anchor: anchor)
@@ -73,8 +70,6 @@ class ARViewModel: ObservableObject {
                         annotationNode.scale = SCNVector3(self.annotationScale, self.annotationScale, self.annotationScale)
                         self.annotationNodes.append((annotationNode, self.detectedObjectName))
                         sceneView.scene.rootNode.addChildNode(annotationNode)
-                    } catch {
-                        print("Translation failed: \(error.localizedDescription)")
                     }
                 }
             }
