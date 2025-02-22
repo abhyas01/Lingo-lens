@@ -57,7 +57,7 @@ struct AnnotationDetailView: View {
             if !translatedText.isEmpty {
                 Button(action: {
                     let utterance = AVSpeechUtterance(string: translatedText)
-                    let langCode = targetLanguage.shortName() // e.g. "es-US"
+                    let langCode = targetLanguage.shortName()
                     utterance.voice = AVSpeechSynthesisVoice(language: langCode)
                     AVSpeechSynthesizer().speak(utterance)
                 }) {
