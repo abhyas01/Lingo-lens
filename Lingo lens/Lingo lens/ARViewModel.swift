@@ -17,72 +17,54 @@ class ARViewModel: ObservableObject {
             updateAllAnnotationScales()
         }
     }
-    @Published var selectedLanguage: Language = Language.supportedLanguages.first(where: { $0.code == "es" })! {
-        didSet {
-            translateAllAnnotations()
-        }
-    }
-
+    // Use AvailableLanguage from the Translation API.
+    @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "US"))
+    
     weak var sceneView: ARSCNView?
-    private var annotationNodes: [(node: SCNNode, originalText: String)] = []
-
+    // Internal annotation nodes array.
+    var annotationNodes: [(node: SCNNode, originalText: String)] = []
+    
+    // Properties for annotation detail sheet.
+    @Published var selectedAnnotationText: String?
+    @Published var isShowingAnnotationDetail: Bool = false
+    
     private func updateAllAnnotationScales() {
         for (node, _) in annotationNodes {
             node.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
         }
     }
     
-    private func translateAllAnnotations() {
-        for (node, originalText) in annotationNodes {
-            TranslationManager.shared.translate(originalText, to: selectedLanguage) { [weak self] translatedText in
-                DispatchQueue.main.async {
-                    guard let self = self, let translatedText = translatedText else { return }
-                    if let planeNode = node.childNodes.first {
-                        let plane = planeNode.geometry as? SCNPlane
-                        plane?.firstMaterial?.diffuse.contents = self.makeCapsuleSKScene(
-                            with: translatedText,
-                            width: plane?.width ?? 0.18,
-                            height: plane?.height ?? 0.09
-                        )
-                    }
-                }
-            }
-        }
-    }
-
+    // Create an annotation using the original (English) text.
     func addAnnotation() {
         guard !detectedObjectName.isEmpty else { return }
         guard let sceneView = sceneView,
-              let _ = sceneView.session.currentFrame else { return }
-
+              sceneView.session.currentFrame != nil else { return }
+        
         let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
         
         if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
             let results = sceneView.session.raycast(query)
             if let result = results.first {
-                TranslationManager.shared.translate(detectedObjectName, to: selectedLanguage) { [weak self] translatedText in
-                    guard let self = self, let translatedText = translatedText else { return }
-                    DispatchQueue.main.async {
-                        let annotationNode = self.createCapsuleAnnotation(with: translatedText)
-                        let anchor = ARAnchor(transform: result.worldTransform)
-                        sceneView.session.add(anchor: anchor)
-                        annotationNode.simdTransform = result.worldTransform
-                        annotationNode.scale = SCNVector3(self.annotationScale, self.annotationScale, self.annotationScale)
-                        self.annotationNodes.append((annotationNode, self.detectedObjectName))
-                        sceneView.scene.rootNode.addChildNode(annotationNode)
-                    }
+                DispatchQueue.main.async {
+                    let annotationNode = self.createCapsuleAnnotation(with: self.detectedObjectName)
+                    let anchor = ARAnchor(transform: result.worldTransform)
+                    sceneView.session.add(anchor: anchor)
+                    annotationNode.simdTransform = result.worldTransform
+                    annotationNode.scale = SCNVector3(self.annotationScale, self.annotationScale, self.annotationScale)
+                    self.annotationNodes.append((annotationNode, self.detectedObjectName))
+                    sceneView.scene.rootNode.addChildNode(annotationNode)
                 }
             }
         }
     }
-
+    
     func resetAnnotations() {
         for (node, _) in annotationNodes {
             node.removeFromParentNode()
         }
         annotationNodes.removeAll()
     }
-
+    
     private func createCapsuleAnnotation(with text: String) -> SCNNode {
         let baseWidth: CGFloat = 0.18
         let extraWidthPerChar: CGFloat = 0.005
@@ -138,7 +120,7 @@ class ARViewModel: ObservableObject {
         chevron.fontColor = .gray
         chevron.verticalAlignmentMode = .center
         chevron.horizontalAlignmentMode = .center
-        chevron.position = CGPoint(x: sceneSize.width - 40, y: -sceneSize.height/2)
+        chevron.position = CGPoint(x: sceneSize.width - 40, y: -sceneSize.height / 2)
         containerNode.addChild(chevron)
         
         let processedLines = processTextIntoLines(text, maxCharsPerLine: 20)
@@ -164,7 +146,7 @@ class ARViewModel: ObservableObject {
         
         return scene
     }
-
+    
     private func processTextIntoLines(_ text: String, maxCharsPerLine: Int) -> [String] {
         var lines = [String]()
         var words = text.split(separator: " ").map(String.init)

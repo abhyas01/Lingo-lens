@@ -34,19 +34,17 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         let roi = arViewModel.adjustableROI
         
         var nx = roi.origin.x / screenWidth
-        
         var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight)
-
         var nw = roi.width  / screenWidth
         var nh = roi.height / screenHeight
         
-        // clamp
+        // Clamp values to [0, 1]
         if nx < 0 { nx = 0 }
         if ny < 0 { ny = 0 }
         if nx + nw > 1 { nw = 1 - nx }
         if ny + nh > 1 { nh = 1 - ny }
         
-        // 3) physically crop
+        // 3) Physically crop the image and detect the object.
         objectDetectionManager.detectObjectCropped(
             pixelBuffer: pixelBuffer,
             exifOrientation: exifOrientation,
@@ -54,6 +52,21 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         ) { result in
             DispatchQueue.main.async {
                 self.arViewModel.detectedObjectName = result ?? ""
+            }
+        }
+    }
+    
+    // Tap handler to detect when an annotation is tapped.
+    @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard let sceneView = arViewModel.sceneView else { return }
+        let location = gesture.location(in: sceneView)
+        let hitResults = sceneView.hitTest(location, options: nil)
+        if let hitResult = hitResults.first {
+            if let tappedAnnotation = arViewModel.annotationNodes.first(where: { tuple in
+                return tuple.node == hitResult.node || tuple.node.childNodes.contains(hitResult.node)
+            }) {
+                arViewModel.selectedAnnotationText = tappedAnnotation.originalText
+                arViewModel.isShowingAnnotationDetail = true
             }
         }
     }

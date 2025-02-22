@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct Lingo_lensApp: App {
+    @StateObject private var translationService = TranslationService()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(translationService)
         }
     }
 }

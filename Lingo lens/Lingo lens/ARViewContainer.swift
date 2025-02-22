@@ -25,11 +25,15 @@ struct ARViewContainer: UIViewRepresentable {
         sceneView.showsStatistics = false
         sceneView.debugOptions = [.showFeaturePoints]  // Optional for debugging
         
+        // Add tap gesture recognizer for detecting annotation taps.
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handleTap(_:)))
+        sceneView.addGestureRecognizer(tapGesture)
+        
         return sceneView
     }
     
     func updateUIView(_ uiView: ARSCNView, context: Context) {
-        // No updates needed for now.
+        // No updates needed.
     }
     
     func makeCoordinator() -> ARCoordinator {

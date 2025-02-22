@@ -9,11 +9,12 @@
 import SwiftUI
 
 struct LanguageSelectionView: View {
-    @Binding var selectedLanguage: Language
+    @EnvironmentObject var translationService: TranslationService
+    @Binding var selectedLanguage: AvailableLanguage
     @Binding var isPresented: Bool
-    @State private var tempSelectedLanguage: Language
+    @State private var tempSelectedLanguage: AvailableLanguage
     
-    init(selectedLanguage: Binding<Language>, isPresented: Binding<Bool>) {
+    init(selectedLanguage: Binding<AvailableLanguage>, isPresented: Binding<Bool>) {
         self._selectedLanguage = selectedLanguage
         self._isPresented = isPresented
         self._tempSelectedLanguage = State(initialValue: selectedLanguage.wrappedValue)
@@ -21,11 +22,11 @@ struct LanguageSelectionView: View {
     
     var body: some View {
         NavigationView {
-            List(Language.supportedLanguages) { language in
+            List(translationService.availableLanguages, id: \.id) { language in
                 HStack {
-                    Text(language.name)
+                    Text(language.localizedName())
                     Spacer()
-                    if language.code == tempSelectedLanguage.code {
+                    if language.shortName() == tempSelectedLanguage.shortName() {
                         Image(systemName: "checkmark")
                             .foregroundColor(.blue)
                     }

@@ -13,12 +13,15 @@ struct ContentView: View {
     @State private var previousSize: CGSize = .zero
     @State private var isSettingsExpanded = false
     @State private var showLanguageSelection = false
+    
+    // Access the translation service from the environment.
+    @EnvironmentObject var translationService: TranslationService
 
     var body: some View {
         ZStack {
             ARViewContainer(arViewModel: arViewModel)
                 .edgesIgnoringSafeArea(.all)
-
+            
             GeometryReader { geo in
                 Color.clear
                     .onAppear {
@@ -86,7 +89,7 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Plus button
+                    // Plus button to add an annotation.
                     Button(action: {
                         arViewModel.addAnnotation()
                     }) {
@@ -132,7 +135,7 @@ struct ContentView: View {
                                 showLanguageSelection = true
                             }) {
                                 HStack {
-                                    Text(arViewModel.selectedLanguage.name)
+                                    Text(arViewModel.selectedLanguage.localizedName())
                                         .foregroundColor(.white)
                                     Spacer()
                                     Image(systemName: "chevron.right")
@@ -182,11 +185,20 @@ struct ContentView: View {
                 ))
             }
         }
+        // Language selection sheet.
         .sheet(isPresented: $showLanguageSelection) {
             LanguageSelectionView(
                 selectedLanguage: $arViewModel.selectedLanguage,
                 isPresented: $showLanguageSelection
             )
+            .environmentObject(translationService)
+        }
+        // Annotation detail sheet shown when an annotation is tapped.
+        .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {
+            if let originalText = arViewModel.selectedAnnotationText {
+                AnnotationDetailView(originalText: originalText, targetLanguage: arViewModel.selectedLanguage)
+                    .environmentObject(translationService)
+            }
         }
     }
 }
@@ -229,6 +241,6 @@ extension CGRect {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView().environmentObject(TranslationService())
     }
 }
