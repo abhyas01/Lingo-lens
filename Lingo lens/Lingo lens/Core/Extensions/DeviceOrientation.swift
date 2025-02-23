@@ -1,5 +1,5 @@
 //
-//  UIDeviceOrientationExtension.swift
+//  DeviceOrientation.swift
 //  Lingo lens
 //
 //  Created by Abhyas Mall on 2/18/25.
@@ -8,6 +8,7 @@
 import UIKit
 
 extension UIDeviceOrientation {
+    
     var exifOrientation: CGImagePropertyOrientation {
         switch self {
         case .portraitUpsideDown:

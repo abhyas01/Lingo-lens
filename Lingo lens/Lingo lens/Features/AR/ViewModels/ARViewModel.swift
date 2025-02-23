@@ -10,34 +10,29 @@ import ARKit
 import SceneKit
 
 class ARViewModel: ObservableObject {
-    @Published var isDetectionActive = true
+    @Published var isDetectionActive = false
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
+    @Published var selectedAnnotationText: String?
+    @Published var isShowingAnnotationDetail: Bool = false
     @Published var annotationScale: CGFloat = 1.0 {
         didSet {
             updateAllAnnotationScales()
         }
     }
-    
     @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
     
     weak var sceneView: ARSCNView?
     
     var annotationNodes: [(node: SCNNode, originalText: String, worldPos: SIMD3<Float>)] = []
-    
-    @Published var selectedAnnotationText: String?
-    @Published var isShowingAnnotationDetail: Bool = false
-    
+
     private func updateAllAnnotationScales() {
         for (node, _, _) in annotationNodes {
             node.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
         }
     }
 
-    
-    // Create an annotation using the original (English) text.
     func addAnnotation() {
-        
         guard !detectedObjectName.isEmpty,
               !detectedObjectName.trimmingCharacters(in: .whitespaces).isEmpty else {
             return

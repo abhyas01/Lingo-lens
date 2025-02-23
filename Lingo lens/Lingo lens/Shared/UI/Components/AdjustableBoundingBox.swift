@@ -9,20 +9,21 @@ import SwiftUI
 
 struct AdjustableBoundingBox: View {
     @Binding var roi: CGRect
-    var containerSize: CGSize
     @State private var initialBoxROI: CGRect? = nil
     @State private var boxDragOffset: CGSize = .zero
     @State private var initialHandleROI: CGRect? = nil
-    private let margin: CGFloat = 8
     
-    // New enum for edge handles
+    private let margin: CGFloat = 4
     private enum EdgePosition { case top, bottom, leading, trailing }
+    
+    enum HandlePosition { case topLeft, topRight, bottomLeft, bottomRight }
+    var containerSize: CGSize
     
     var body: some View {
         ZStack {
-            // Main rectangle (original implementation)
+            
             Rectangle()
-                .stroke(Color.yellow, lineWidth: 3)
+                .stroke(Color.yellow, lineWidth: 4)
                 .background(Color.clear)
                 .frame(width: roi.width, height: roi.height)
                 .position(
@@ -31,13 +32,11 @@ struct AdjustableBoundingBox: View {
                 )
                 .gesture(mainDragGesture)
             
-            // Original corner handles
             handleView(for: .topLeft)
             handleView(for: .topRight)
             handleView(for: .bottomLeft)
             handleView(for: .bottomRight)
             
-            // New edge arrow handles
             edgeHandleView(for: .top)
             edgeHandleView(for: .bottom)
             edgeHandleView(for: .leading)
@@ -48,6 +47,7 @@ struct AdjustableBoundingBox: View {
     }
     
     // MARK: - Edge Handles
+    
     private func edgeHandleView(for position: EdgePosition) -> some View {
         Image(systemName: "square.arrowtriangle.4.outward")
             .font(.system(size: 25))
@@ -69,7 +69,6 @@ struct AdjustableBoundingBox: View {
         }
     }
     
-    // MARK: - Original Implementation Below (No Changes)
     private var mainDragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
@@ -132,8 +131,6 @@ struct AdjustableBoundingBox: View {
                 boxDragOffset = .zero
             }
     }
-    
-    enum HandlePosition { case topLeft, topRight, bottomLeft, bottomRight }
     
     @ViewBuilder
     private func handleView(for position: HandlePosition) -> some View {
@@ -231,6 +228,36 @@ struct AdjustableBoundingBox: View {
                 ))
             }
             
+            let edgeThickness: CGFloat = 20
+
+            path.addRect(CGRect(
+                x: adjustedROI.minX,
+                y: adjustedROI.minY - edgeThickness/2,
+                width: adjustedROI.width,
+                height: edgeThickness
+            ))
+
+            path.addRect(CGRect(
+                x: adjustedROI.minX,
+                y: adjustedROI.maxY - edgeThickness/2,
+                width: adjustedROI.width,
+                height: edgeThickness
+            ))
+            
+            path.addRect(CGRect(
+                x: adjustedROI.minX - edgeThickness/2,
+                y: adjustedROI.minY,
+                width: edgeThickness,
+                height: adjustedROI.height
+            ))
+            
+            path.addRect(CGRect(
+                x: adjustedROI.maxX - edgeThickness/2,
+                y: adjustedROI.minY,
+                width: edgeThickness,
+                height: adjustedROI.height
+            ))
+            
             return path
         }
     }
@@ -266,7 +293,7 @@ struct AdjustableBoundingBox: View {
 struct AdjustableBoundingBox_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
-            Color.black // Dark background to see the yellow box better
+            Color.black
             AdjustableBoundingBox(
                 roi: .constant(CGRect(x: 100, y: 100, width: 200, height: 200)),
                 containerSize: CGSize(width: 400, height: 800)

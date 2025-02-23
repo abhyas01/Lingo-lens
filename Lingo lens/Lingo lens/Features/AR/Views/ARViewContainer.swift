@@ -16,17 +16,14 @@ struct ARViewContainer: UIViewRepresentable {
         let sceneView = ARSCNView()
         sceneView.delegate = context.coordinator
         sceneView.session.delegate = context.coordinator
-        arViewModel.sceneView = sceneView  // Pass reference to our view model
+        arViewModel.sceneView = sceneView
         
-        // Configure the AR session for world tracking and plane detection.
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
         sceneView.session.run(configuration)
         
         sceneView.showsStatistics = false
-        sceneView.debugOptions = [.showFeaturePoints]  // Optional for debugging
         
-        // Add tap gesture recognizer for detecting annotation taps.
         let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handleTap(_:)))
         sceneView.addGestureRecognizer(tapGesture)
         
@@ -34,7 +31,6 @@ struct ARViewContainer: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: ARSCNView, context: Context) {
-        // No updates needed.
     }
     
     func makeCoordinator() -> ARCoordinator {

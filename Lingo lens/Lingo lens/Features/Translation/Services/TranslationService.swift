@@ -12,7 +12,6 @@ class TranslationService: ObservableObject {
     @Published var translatedText = ""
     @Published var availableLanguages: [AvailableLanguage] = []
     
-    // Add a property for the source language (English)
     let sourceLanguage = Locale.Language(languageCode: "en")
     
     init() {

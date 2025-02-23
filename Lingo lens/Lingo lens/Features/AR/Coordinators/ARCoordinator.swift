@@ -25,11 +25,9 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         
         let pixelBuffer = frame.capturedImage
         
-        // 1) Get device orientation -> exifOrientation
         let deviceOrientation = UIDevice.current.orientation
         let exifOrientation = deviceOrientation.exifOrientation
         
-        // 2) Convert bounding box (top-left) to normalized (bottom-left)
         let screenWidth = sceneView.bounds.width
         let screenHeight = sceneView.bounds.height
         let roi = arViewModel.adjustableROI
@@ -39,13 +37,11 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         var nw = roi.width  / screenWidth
         var nh = roi.height / screenHeight
         
-        // Clamp values to [0, 1]
         if nx < 0 { nx = 0 }
         if ny < 0 { ny = 0 }
         if nx + nw > 1 { nw = 1 - nx }
         if ny + nh > 1 { nh = 1 - ny }
         
-        // 3) Physically crop the image and detect the object.
         objectDetectionManager.detectObjectCropped(
             pixelBuffer: pixelBuffer,
             exifOrientation: exifOrientation,

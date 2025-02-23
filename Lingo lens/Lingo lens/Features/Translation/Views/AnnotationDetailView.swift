@@ -28,7 +28,7 @@ struct AnnotationDetailView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            // Header with close button
+            
             HStack {
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -58,7 +58,7 @@ struct AnnotationDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Translation Results Area
+                    
                     Group {
                         if !translatedText.isEmpty && !translationError {
                             VStack(spacing: 12) {
@@ -153,9 +153,8 @@ struct AnnotationDetailView: View {
         .presentationDragIndicator(.visible)
         .onAppear {
             setupConfiguration()
-            startTranslation() // Auto-start translation
+            startTranslation()
             
-            // Start timer for long loading detection
             DispatchQueue.main.asyncAfter(deadline: .now() + loadingTimeout) {
                 if isTranslating {
                     showLongLoadingWarning = true
@@ -177,8 +176,7 @@ struct AnnotationDetailView: View {
             Text("Please go to: Settings > Apps > Translate > Downloaded Languages.\nThen download this language.")
         }
     }
-
-    // MARK: - Translation Logic
+    
     private func startTranslation() {
         guard configuration != nil else { return }
         guard translationService.sourceLanguage != targetLanguage.locale else {
@@ -202,7 +200,6 @@ struct AnnotationDetailView: View {
          isTranslating = false
      }
     
-    // MARK: - Speech Synthesis
     private func speakTranslation() {
         speechSynthesizer.stopSpeaking(at: .immediate)
         
@@ -221,7 +218,6 @@ struct AnnotationDetailView: View {
         speechSynthesizer.speak(utterance)
     }
 
-    // MARK: - Configuration
     private func setupConfiguration() {
         if configuration == nil {
             configuration = TranslationSession.Configuration(
@@ -231,7 +227,6 @@ struct AnnotationDetailView: View {
         }
     }
     
-    // MARK: - Settings Navigation
     private func openAppSettings() {
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
         if UIApplication.shared.canOpenURL(settingsUrl) {
@@ -239,7 +234,6 @@ struct AnnotationDetailView: View {
         }
     }
 
-    // MARK: - Translation Task
     private var translationTaskBackground: some View {
         Group {
             if shouldTranslate, let config = configuration {
