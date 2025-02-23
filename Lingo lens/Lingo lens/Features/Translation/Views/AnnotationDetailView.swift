@@ -31,11 +31,14 @@ struct AnnotationDetailView: View {
             
             HStack {
                 Spacer()
+                
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
                         .foregroundStyle(.gray)
                 }
+                .accessibilityLabel("Close Translation")
+
             }
             .padding(.horizontal)
             .padding(.top, 10)
@@ -83,14 +86,21 @@ struct AnnotationDetailView: View {
                                         .background(Color.blue)
                                         .cornerRadius(12)
                                 }
+                                .accessibilityLabel("Listen to pronunciation")
+                                .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.localizedName())")
+                                
                             }
                             .padding(.horizontal)
                         }
                         
                         if isTranslating {
                             VStack(spacing: 16) {
+                                
                                 ProgressView()
                                     .scaleEffect(1.5)
+                                    .accessibilityLabel("Translation in progress")
+                                    .accessibilityValue(showLongLoadingWarning ? "Taking longer than usual" : "")
+                                
                                 Text("Translating...")
                                     .foregroundStyle(.gray)
                                 
@@ -138,6 +148,9 @@ struct AnnotationDetailView: View {
                                     .buttonStyle(.borderedProminent)
                                 }
                             }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Translation Error")
+                            .accessibilityHint("Choose to download language or try again")
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(Color.red.opacity(0.1))

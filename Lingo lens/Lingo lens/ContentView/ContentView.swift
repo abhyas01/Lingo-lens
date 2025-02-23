@@ -64,6 +64,8 @@ struct ContentView: View {
                                 .padding(8)
                                 .background(Color.gray.opacity(0.7))
                                 .clipShape(Circle())
+                                .accessibilityLabel("Instructions")
+                                .accessibilityHint("Learn how to use Lingo Lens")
                         }
                         
                         if showInfoPopover {
@@ -83,6 +85,7 @@ struct ContentView: View {
                                     Text("Tap here to learn how to use the app")
                                         .font(.system(size: 14))
                                         .foregroundColor(.white)
+                                        .accessibilityAddTraits(.isStaticText)
                                 }
                                 .padding(12)
                                 .background(Color.gray.opacity(0.7))
@@ -106,6 +109,7 @@ struct ContentView: View {
                         .padding()
                         .transition(.opacity)
                         .zIndex(1)
+                        .accessibilityAddTraits(.updatesFrequently)
                 }
                 
                 if arViewModel.isDetectionActive {

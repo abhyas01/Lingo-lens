@@ -27,5 +27,9 @@ struct DetectionLabel: View {
             .foregroundColor(.white)
             .cornerRadius(10)
             .padding(.horizontal)
+            .accessibilityLabel("Detection Status")
+            .accessibilityValue(detectedObjectName.isEmpty ?
+                "No object detected" :
+                "Detected object: \(detectedObjectName)")
     }
 }

@@ -65,6 +65,8 @@ struct SettingsPanel: View {
                 .background(Color.accentColor.opacity(0.1))
                 .cornerRadius(8)
             }
+            .accessibilityLabel("Select Translation Language")
+            .accessibilityValue("Current language: \(arViewModel.selectedLanguage.localizedName())")
         }
     }
     
@@ -76,6 +78,9 @@ struct SettingsPanel: View {
             Slider(value: $arViewModel.annotationScale,
                    in: 0.2...3.5,
                    step: 0.1)
+            .accessibilityLabel("Annotation Size")
+            .accessibilityValue("\(Int(arViewModel.annotationScale * 100))% of default size")
+            .accessibilityHint("Adjust to make annotations larger or smaller")
             .tint(.accentColor)
         }
     }
@@ -94,5 +99,7 @@ struct SettingsPanel: View {
             .background(Color.red.opacity(0.8))
             .cornerRadius(8)
         }
+        .accessibilityLabel("Clear All Annotations")
+        .accessibilityHint("Removes all translation annotations from the screen")
     }
 }

@@ -14,9 +14,21 @@ struct AdjustableBoundingBox: View {
     @State private var initialHandleROI: CGRect? = nil
     
     private let margin: CGFloat = 4
-    private enum EdgePosition { case top, bottom, leading, trailing }
     
-    enum HandlePosition { case topLeft, topRight, bottomLeft, bottomRight }
+    private enum EdgePosition: String {
+        case top = "Top"
+        case bottom = "Bottom"
+        case leading = "Left"
+        case trailing = "Right"
+    }
+    
+    enum HandlePosition: String {
+        case topLeft = "Top left"
+        case topRight = "Top right"
+        case bottomLeft = "Bottom left"
+        case bottomRight = "Bottom right"
+    }
+    
     var containerSize: CGSize
     
     var body: some View {
@@ -24,6 +36,9 @@ struct AdjustableBoundingBox: View {
             
             Rectangle()
                 .stroke(Color.yellow, lineWidth: 4)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Detection box")
+                .accessibilityHint("Area where objects will be detected")
                 .background(Color.clear)
                 .frame(width: roi.width, height: roi.height)
                 .position(
@@ -54,6 +69,8 @@ struct AdjustableBoundingBox: View {
             .foregroundColor(Color.yellow)
             .position(edgePosition(for: position))
             .gesture(mainDragGesture)
+            .accessibilityLabel("\(position.rawValue) edge")
+            .accessibilityHint("Drag to move the detection box")
     }
     
     private func edgePosition(for position: EdgePosition) -> CGPoint {
@@ -194,6 +211,8 @@ struct AdjustableBoundingBox: View {
                         initialHandleROI = nil
                     }
             )
+            .accessibilityLabel("\(position.rawValue) resize handle")
+            .accessibilityHint("Drag to resize the detection box")
     }
     
     private struct CombinedContentShape: Shape {

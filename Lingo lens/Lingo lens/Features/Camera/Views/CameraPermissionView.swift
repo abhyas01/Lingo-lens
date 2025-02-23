@@ -18,18 +18,21 @@ struct CameraPermissionView: View {
                 .font(.system(size: 80))
                 .foregroundColor(.blue)
                 .padding(.bottom, 16)
+                .accessibilityHidden(true)
             
             
             VStack(spacing: 16) {
                 Text("Camera Access Required")
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
                 
                 Text("Lingo Lens needs camera access to help you learn languages through object recognition. Please enable camera access in Settings to start your learning journey.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+                    .accessibilityLabel("Camera access is required for object detection and translation")
             }
             
             VStack(spacing: 12) {
@@ -45,6 +48,7 @@ struct CameraPermissionView: View {
                     .background(Color.blue)
                     .cornerRadius(12)
                 }
+                .accessibilityHint("Opens iOS Settings to enable camera access")
                 .padding(.horizontal, 32)
                 
                 Button(action: recheckPermission) {

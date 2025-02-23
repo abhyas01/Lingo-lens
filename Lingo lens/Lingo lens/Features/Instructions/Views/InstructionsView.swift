@@ -24,6 +24,7 @@ struct InstructionsView: View {
                             .font(.title2)
                             .foregroundStyle(.gray)
                     }
+                    .accessibilityLabel("Close Instructions")
                 }
                 .padding(.horizontal)
                 
@@ -97,6 +98,8 @@ struct InstructionsView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(description)")
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))

@@ -30,6 +30,10 @@ struct LanguageSelectionView: View {
                             .foregroundColor(.blue)
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(language.localizedName())")
+                .accessibilityValue(language.shortName() == tempSelectedLanguage.shortName() ? "Selected" : "")
+                .accessibilityAddTraits(language.shortName() == tempSelectedLanguage.shortName() ? .isSelected : [])
                 .contentShape(Rectangle())
                 .onTapGesture {
                     tempSelectedLanguage = language
