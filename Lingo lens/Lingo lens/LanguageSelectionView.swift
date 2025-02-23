@@ -65,3 +65,26 @@ struct LanguageSelectionView: View {
         }
     }
 }
+
+
+struct LanguageSelectionView_Previews: PreviewProvider {
+    static var previews: some View {
+        let sampleLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
+        
+        LanguageSelectionView(
+            selectedLanguage: .constant(sampleLanguage),
+            isPresented: .constant(true)
+        )
+        .environmentObject({
+            let service = TranslationService()
+            // Add some sample languages
+            service.availableLanguages = [
+                AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES")),
+                AvailableLanguage(locale: Locale.Language(languageCode: "fr", region: "FR")),
+                AvailableLanguage(locale: Locale.Language(languageCode: "de", region: "DE")),
+                AvailableLanguage(locale: Locale.Language(languageCode: "it", region: "IT"))
+            ]
+            return service
+        }())
+    }
+}

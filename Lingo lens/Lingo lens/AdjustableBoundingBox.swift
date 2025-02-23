@@ -265,9 +265,12 @@ struct AdjustableBoundingBox: View {
 
 struct AdjustableBoundingBox_Previews: PreviewProvider {
     static var previews: some View {
-        AdjustableBoundingBox(
-            roi: .constant(CGRect(x: 100, y: 100, width: 200, height: 200)),
-            containerSize: CGSize(width: 400, height: 800)
-        )
+        ZStack {
+            Color.black // Dark background to see the yellow box better
+            AdjustableBoundingBox(
+                roi: .constant(CGRect(x: 100, y: 100, width: 200, height: 200)),
+                containerSize: CGSize(width: 400, height: 800)
+            )
+        }
     }
 }

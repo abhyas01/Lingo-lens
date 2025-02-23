@@ -40,3 +40,10 @@ struct ARViewContainer: UIViewRepresentable {
         ARCoordinator(arViewModel: arViewModel)
     }
 }
+
+struct ARViewContainer_Previews: PreviewProvider {
+    static var previews: some View {
+        ARViewContainer(arViewModel: ARViewModel())
+            .edgesIgnoringSafeArea(.all)
+    }
+}

@@ -11,91 +11,228 @@ import AVFoundation
 
 struct AnnotationDetailView: View {
     @EnvironmentObject var translationService: TranslationService
-    /// The original text is always in English (from object detection)
+    @Environment(\.dismiss) private var dismiss
     let originalText: String
-    /// The target language selected by the user (default is Spanish)
     let targetLanguage: AvailableLanguage
 
-    // Local state for the translated text.
     @State private var translatedText: String = ""
-    // State to indicate translation progress.
     @State private var isTranslating: Bool = false
-    // Trigger flag to launch the hidden translationTask.
+    @State private var translationError: Bool = false
     @State private var shouldTranslate: Bool = false
-    // Translation configuration; will be set in onAppear.
     @State private var configuration: TranslationSession.Configuration?
+    @State private var showDownloadAlert: Bool = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Original: \(originalText)")
-                .font(.headline)
-            
-            if !translatedText.isEmpty {
-                Text("Translated:")
-                    .font(.subheadline)
-                Text(translatedText)
-                    .italic()
-                    .multilineTextAlignment(.center)
-                    .padding()
-            }
-            
-            if isTranslating {
-                ProgressView("Translating...")
-            }
-            
-            // Button to trigger translation.
-            Button("Translate") {
-                guard configuration != nil else { return }
-                isTranslating = true
-                shouldTranslate = true
-            }
-            .buttonStyle(.borderedProminent)
-            .foregroundStyle(.white)
-            .disabled(isTranslating || originalText.isEmpty)
-            
-            // Once translated, show a button to hear pronunciation.
-            if !translatedText.isEmpty {
-                Button(action: {
-                    let utterance = AVSpeechUtterance(string: translatedText)
-                    let langCode = targetLanguage.shortName()
-                    utterance.voice = AVSpeechSynthesisVoice(language: langCode)
-                    AVSpeechSynthesizer().speak(utterance)
-                }) {
-                    Label("Hear Pronunciation", systemImage: "speaker.wave.2.fill")
+        VStack(spacing: 24) {
+            // Header with close button
+            HStack {
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.gray)
                 }
-                .buttonStyle(.borderedProminent)
             }
+            .padding(.horizontal)
+            .padding(.top, 10)
             
-            Spacer()
-        }
-        .padding()
-        .onAppear {
-            if configuration == nil {
-                // Initialize the configuration with the source and target languages
-                configuration = TranslationSession.Configuration(
-                    source: translationService.sourceLanguage,
-                    target: targetLanguage.locale
-                )
-            }
-        }
-        .background(
-            Group {
-                if shouldTranslate, let config = configuration {
-                    Text("")
-                        .translationTask(config) { session in
-                            do {
-                                try await translationService.translate(text: originalText, using: session)
-                                translatedText = translationService.translatedText
-                            } catch {
-                                translatedText = "Translation error"
-                                print("Translation error: \(error)")
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Original Text Section
+                    VStack(spacing: 12) {
+                        Text("Original Word")
+                            .font(.subheadline)
+                            .foregroundStyle(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                        Text(originalText)
+                            .font(.title2.bold())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(Color.black.opacity(0.05))
+                            .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Translation Results Area
+                    Group {
+                        if !translatedText.isEmpty && !translationError {
+                            VStack(spacing: 12) {
+                                Text("Translation")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.gray)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    
+                                Text(translatedText)
+                                    .font(.title2.bold())
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(12)
+                                
+                                Button(action: speakTranslation) {
+                                    Label("Listen", systemImage: "speaker.wave.2.fill")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.blue)
+                                        .cornerRadius(12)
+                                }
                             }
-                            isTranslating = false
-                            shouldTranslate = false
+                            .padding(.horizontal)
                         }
+                        
+                        if isTranslating {
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                Text("Translating...")
+                                    .foregroundStyle(.gray)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 150)
+                        }
+                        
+                        if translationError {
+                            VStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.red)
+                                
+                                Text("Translation failed")
+                                    .font(.headline)
+                                    .foregroundStyle(.red)
+                                
+                                Text("Try downloading the language or translate again")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.gray)
+                                    .multilineTextAlignment(.center)
+                                
+                                HStack(spacing: 16) {
+                                    Button("Download Language") {
+                                        showDownloadAlert = true
+                                    }
+                                    .buttonStyle(.bordered)
+                                    
+                                    Button("Try Again") {
+                                        startTranslation()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                }
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        }
+                    }
+                    .frame(minHeight: 150)
+                    
+                    if !isTranslating && !translationError && translatedText.isEmpty {
+                        Button(action: startTranslation) {
+                            Text("Translate")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                    }
                 }
             }
-            .hidden()
-        )
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        .onAppear(perform: setupConfiguration)
+        .background(translationTaskBackground)
+        .alert("Download Language", isPresented: $showDownloadAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Settings") {
+                openAppSettings()
+            }
+        } message: {
+            Text("Please go to Settings > Translate > Downloaded Languages to add this language.")
+        }
+    }
+
+    // MARK: - Translation Logic
+    private func startTranslation() {
+        guard configuration != nil else { return }
+        guard translationService.sourceLanguage != targetLanguage.locale else {
+            showError(message: "Can't translate to same language")
+            return
+        }
+        
+        resetState()
+        isTranslating = true
+        shouldTranslate = true
+    }
+    
+    private func resetState() {
+        translatedText = ""
+        translationError = false
+    }
+    
+    private func showError(message: String) {
+         translatedText = message
+         translationError = true
+         isTranslating = false
+     }
+    
+    // MARK: - Speech Synthesis
+    private func speakTranslation() {
+        let utterance = AVSpeechUtterance(string: translatedText)
+        let langCode = targetLanguage.locale.languageCode?.debugDescription ?? "en"
+        
+        if let voice = AVSpeechSynthesisVoice(language: langCode) {
+            utterance.voice = voice
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        }
+        
+        AVSpeechSynthesizer().speak(utterance)
+    }
+
+    // MARK: - Configuration
+    private func setupConfiguration() {
+        if configuration == nil {
+            configuration = TranslationSession.Configuration(
+                source: translationService.sourceLanguage,
+                target: targetLanguage.locale
+            )
+        }
+    }
+    
+    // MARK: - Settings Navigation
+    private func openAppSettings() {
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
+        if UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl)
+        }
+    }
+
+    // MARK: - Translation Task
+    private var translationTaskBackground: some View {
+        Group {
+            if shouldTranslate, let config = configuration {
+                Text("")
+                    .translationTask(config) { session in
+                        do {
+                            try await translationService.translate(text: originalText, using: session)
+                            translatedText = translationService.translatedText
+                            translationError = false
+                        } catch {
+                            translatedText = "Translation failed. Try downloading the language."
+                            translationError = true
+                        }
+                        isTranslating = false
+                        shouldTranslate = false
+                    }
+            }
+        }
+        .hidden()
     }
 }
