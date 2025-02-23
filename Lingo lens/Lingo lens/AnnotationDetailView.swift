@@ -24,7 +24,7 @@ struct AnnotationDetailView: View {
     @State private var showLongLoadingWarning: Bool = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     
-    let loadingTimeout: TimeInterval = 10 // 10 seconds timeout
+    let loadingTimeout: TimeInterval = 10
 
     var body: some View {
         VStack(spacing: 24) {
@@ -174,7 +174,7 @@ struct AnnotationDetailView: View {
                 openAppSettings()
             }
         } message: {
-            Text("Please go to Settings > Translate > Downloaded Languages to add this language.")
+            Text("Please go to: Settings > Apps > Translate > Downloaded Languages.\nThen download this language.")
         }
     }
 

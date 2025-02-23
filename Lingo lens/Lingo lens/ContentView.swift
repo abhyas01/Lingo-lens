@@ -7,12 +7,14 @@
 
 import SwiftUI
 import ARKit
+import AVFoundation
 
 struct ContentView: View {
     @StateObject private var arViewModel = ARViewModel()
     @State private var previousSize: CGSize = .zero
     @State private var isSettingsExpanded = false
     @State private var showLanguageSelection = false
+    @State private var showCameraPermissionAlert = false
     
     @EnvironmentObject var translationService: TranslationService
 
@@ -233,6 +235,58 @@ struct ContentView: View {
                     .environmentObject(translationService)
             }
         }
+        .onAppear(perform: checkCameraPermission)
+        .alert("Camera Access Required", isPresented: $showCameraPermissionAlert) {
+            Button("Cancel", role: .cancel) {
+                // Check again after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    checkCameraPermission()
+                }
+            }
+            Button("Open Settings") {
+                openAppSettings()
+                // Check again after returning from settings
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    checkCameraPermission()
+                }
+            }
+        } message: {
+            Text("Lingo Lens cannot function without camera access. Please enable camera access in Settings to use the app.")
+        }
+    }
+    
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            showCameraPermissionAlert = false
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if !granted {
+                        showCameraPermissionAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showCameraPermissionAlert = true
+        @unknown default:
+            showCameraPermissionAlert = true
+        }
+        
+        // Set up periodic permission check
+        if !showCameraPermissionAlert {
+            // Check every 2 seconds when alert is not showing
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                checkCameraPermission()
+            }
+        }
+    }
+    
+    private func openAppSettings() {
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
+        if UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl)
+        }
     }
 }
 
@@ -269,12 +323,5 @@ extension CGRect {
         }
         
         return newRect
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-            .environmentObject(TranslationService())
     }
 }
