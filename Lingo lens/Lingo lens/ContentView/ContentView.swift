@@ -15,6 +15,7 @@ struct ContentView: View {
     @StateObject private var cameraPermissionManager = CameraPermissionManager()
     @State private var previousSize: CGSize = .zero
     @State private var showInstructions = false
+    @State private var showInfoPopover = true
     @EnvironmentObject var translationService: TranslationService
     
     var body: some View {
@@ -50,17 +51,49 @@ struct ContentView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Button(action: {
-                        arViewModel.isDetectionActive = false
-                        arViewModel.detectedObjectName = ""
-                        showInstructions = true
-                    }) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.system(size: 15))
-                            .foregroundColor(.white)
-                            .padding(8)
-                            .background(Color.black.opacity(0.5))
-                            .clipShape(Circle())
+                    ZStack(alignment: .topTrailing) {
+                        Button(action: {
+                            arViewModel.isDetectionActive = false
+                            arViewModel.detectedObjectName = ""
+                            showInstructions = true
+                            showInfoPopover = false
+                        }) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 15))
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
+                        }
+                        
+                        if showInfoPopover {
+                            VStack(alignment: .trailing, spacing: 8) {
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: "arrow.up")
+                                        .foregroundColor(.white)
+                                        .padding(.trailing, 12)
+                                }
+                                
+                                HStack(spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.white)
+                                        .padding(6)
+                                        .background(Color.white.opacity(0.3))
+                                        .clipShape(Circle())
+                                    
+                                    Text("Tap here to learn how to use the app")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white)
+                                }
+                                .padding(12)
+                                .background(Color.black.opacity(0.8))
+                                .cornerRadius(12)
+                            }
+                            .offset(y: 45)
+                            .transition(.opacity.combined(with: .scale))
+                            .animation(.easeInOut, value: showInfoPopover)
+                        }
                     }
                 }
                 .padding()
@@ -82,6 +115,17 @@ struct ContentView: View {
                     arViewModel: arViewModel,
                     settingsViewModel: settingsViewModel
                 )
+            }
+        }
+        
+        .onChange(of: arViewModel.isDetectionActive) { _, isActive in
+            if isActive {
+                showInfoPopover = false
+            }
+        }
+        .onChange(of: settingsViewModel.isExpanded) { _, isExpanded in
+            if isExpanded {
+                showInfoPopover = false
             }
         }
         .sheet(isPresented: $showInstructions) {
@@ -120,11 +164,12 @@ struct ContentView: View {
                     }
                     previousSize = geo.size
                 }
-                .onChange(of: geo.size) {
-                    guard geo.size != previousSize else { return }
+                // Update GeometryReader onChange to new syntax
+                .onChange(of: geo.size) { oldSize, newSize in
+                    guard newSize != previousSize else { return }
                     arViewModel.adjustableROI = arViewModel.adjustableROI
-                        .resizedAndClamped(from: previousSize, to: geo.size)
-                    previousSize = geo.size
+                        .resizedAndClamped(from: previousSize, to: newSize)
+                    previousSize = newSize
                 }
             
             AdjustableBoundingBox(
