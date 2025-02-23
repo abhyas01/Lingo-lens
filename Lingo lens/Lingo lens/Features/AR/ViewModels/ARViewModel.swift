@@ -16,7 +16,7 @@ class ARViewModel: ObservableObject {
     @Published var selectedAnnotationText: String?
     @Published var isShowingAnnotationDetail: Bool = false
     @Published var showPlacementError = false
-    @Published var placementErrorMessage = "Could not detect a plane to anchor annotation. Try changing angle or moving around."
+    @Published var placementErrorMessage = "Could not detect a plane to anchor annotation. Try again changing angle or moving around."
     @Published var annotationScale: CGFloat = 1.0 {
         didSet {
             updateAllAnnotationScales()
@@ -63,7 +63,7 @@ class ARViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     self.showPlacementError = true
                     
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         self.showPlacementError = false
                     }
                 }

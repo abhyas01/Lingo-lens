@@ -16,13 +16,13 @@ struct SettingsPanel: View {
             HStack {
                 Text("Settings")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                 Spacer()
                 Button(action: {
                     settingsViewModel.toggleExpanded()
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                         .font(.system(size: 20))
                 }
             }
@@ -35,7 +35,7 @@ struct SettingsPanel: View {
             }
         }
         .padding()
-        .background(Color.black.opacity(0.8))
+        .background(.regularMaterial)
         .cornerRadius(15)
         .frame(width: 300)
         .position(x: 160, y: UIScreen.main.bounds.height - 200)
@@ -48,21 +48,21 @@ struct SettingsPanel: View {
     private var languageSelectionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Language")
-                .foregroundColor(.white)
-            
+                .foregroundStyle(.primary)
+
             Button(action: {
                 settingsViewModel.showLanguageSelection = true
             }) {
                 HStack {
                     Text(arViewModel.selectedLanguage.localizedName())
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal, 12)
-                .background(Color.blue.opacity(0.3))
+                .background(Color.accentColor.opacity(0.1))
                 .cornerRadius(8)
             }
         }
@@ -71,11 +71,12 @@ struct SettingsPanel: View {
     private var annotationSizeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Annotation Size")
-                .foregroundColor(.white)
-            
+                .foregroundStyle(.primary)
+
             Slider(value: $arViewModel.annotationScale,
                    in: 0.2...3.5,
                    step: 0.1)
+            .tint(.accentColor)
         }
     }
     
@@ -87,7 +88,7 @@ struct SettingsPanel: View {
                 Image(systemName: "trash")
                 Text("Clear All Annotations")
             }
-            .foregroundColor(.white)
+            .foregroundStyle(.white)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
             .background(Color.red.opacity(0.8))

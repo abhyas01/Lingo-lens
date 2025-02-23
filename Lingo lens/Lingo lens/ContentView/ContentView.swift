@@ -62,7 +62,7 @@ struct ContentView: View {
                                 .font(.system(size: 15))
                                 .foregroundColor(.white)
                                 .padding(8)
-                                .background(Color.black.opacity(0.5))
+                                .background(Color.gray.opacity(0.7))
                                 .clipShape(Circle())
                         }
                         
@@ -76,10 +76,8 @@ struct ContentView: View {
                                 }
                                 
                                 HStack(spacing: 8) {
-                                    Image(systemName: "info.circle")
-                                        .foregroundColor(.white)
-                                        .padding(6)
-                                        .background(Color.white.opacity(0.3))
+                                    Image(systemName: "info.circle.fill")
+                                        .foregroundStyle(.white)
                                         .clipShape(Circle())
                                     
                                     Text("Tap here to learn how to use the app")
@@ -87,7 +85,7 @@ struct ContentView: View {
                                         .foregroundColor(.white)
                                 }
                                 .padding(12)
-                                .background(Color.black.opacity(0.8))
+                                .background(Color.gray.opacity(0.7))
                                 .cornerRadius(12)
                             }
                             .offset(y: 45)

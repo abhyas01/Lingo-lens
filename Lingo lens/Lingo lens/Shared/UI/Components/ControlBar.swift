@@ -33,7 +33,7 @@ struct ControlBar: View {
                 .font(.system(size: 30))
                 .foregroundColor(.white)
                 .padding(12)
-                .background(Color.black.opacity(0.5))
+                .background(Color.gray.opacity(0.7))
                 .clipShape(Circle())
         }
         .rotation3DEffect(
