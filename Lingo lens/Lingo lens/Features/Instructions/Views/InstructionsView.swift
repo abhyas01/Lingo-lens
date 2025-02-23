@@ -43,7 +43,7 @@ struct InstructionsView: View {
                     instructionCard(
                         icon: "square.dashed",
                         title: "3. Adjust Bounding Box",
-                        description: "Fit objects inside the yellow box. Move the box by dragging edges or the 4-arrow icons. Resize using corner circles. Move closer to object if needed."
+                        description: "Fit objects inside the yellow box. Move the box by dragging edges or the icons on edges. Resize using corner circles. Move closer to object if needed."
                     )
                     
                     instructionCard(
