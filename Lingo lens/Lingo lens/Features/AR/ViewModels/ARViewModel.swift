@@ -15,6 +15,8 @@ class ARViewModel: ObservableObject {
     @Published var adjustableROI: CGRect = .zero
     @Published var selectedAnnotationText: String?
     @Published var isShowingAnnotationDetail: Bool = false
+    @Published var showPlacementError = false
+    @Published var placementErrorMessage = "Could not detect a plane to anchor annotation. Try changing angle or moving around."
     @Published var annotationScale: CGFloat = 1.0 {
         didSet {
             updateAllAnnotationScales()
@@ -56,6 +58,14 @@ class ARViewModel: ObservableObject {
                                                result.worldTransform.columns.3.z)
                     self.annotationNodes.append((annotationNode, self.detectedObjectName, worldPos))
                     sceneView.scene.rootNode.addChildNode(annotationNode)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.showPlacementError = true
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        self.showPlacementError = false
+                    }
                 }
             }
         }

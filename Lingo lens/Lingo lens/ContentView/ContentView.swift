@@ -98,6 +98,18 @@ struct ContentView: View {
                 }
                 .padding()
                 
+                if arViewModel.showPlacementError {
+                    Text(arViewModel.placementErrorMessage)
+                        .font(.callout)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(10)
+                        .padding()
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+                
                 if arViewModel.isDetectionActive {
                     DetectionLabel(detectedObjectName: arViewModel.detectedObjectName)
                 }
@@ -117,6 +129,8 @@ struct ContentView: View {
                 )
             }
         }
+        
+        .animation(.easeInOut, value: arViewModel.showPlacementError)
         
         .onChange(of: arViewModel.isDetectionActive) { _, isActive in
             if isActive {

@@ -20,7 +20,13 @@ struct ARViewContainer: UIViewRepresentable {
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
-        sceneView.session.run(configuration)
+        configuration.environmentTexturing = .automatic
+        
+        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+            configuration.sceneReconstruction = .mesh
+        }
+        
+        sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
         
         sceneView.showsStatistics = false
         
