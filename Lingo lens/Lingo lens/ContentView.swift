@@ -101,6 +101,7 @@ struct ContentView: View {
                         .degrees(isSettingsExpanded ? 90 : 0),
                         axis: (x: 0, y: 1, z: 0)
                     )
+                    .frame(width: 60)
                     
                     Spacer()
                     
@@ -139,6 +140,8 @@ struct ContentView: View {
                             .padding()
                     }
                     .disabled(arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive)
+                    .frame(width: 60)
+                    .padding(.trailing)
                 }
             }
             

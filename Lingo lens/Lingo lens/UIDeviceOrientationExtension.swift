@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import ImageIO
 
 extension UIDeviceOrientation {
     var exifOrientation: CGImagePropertyOrientation {
