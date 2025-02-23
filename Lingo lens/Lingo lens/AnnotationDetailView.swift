@@ -21,6 +21,7 @@ struct AnnotationDetailView: View {
     @State private var shouldTranslate: Bool = false
     @State private var configuration: TranslationSession.Configuration?
     @State private var showDownloadAlert: Bool = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
 
     var body: some View {
         VStack(spacing: 24) {
@@ -183,17 +184,24 @@ struct AnnotationDetailView: View {
      }
     
     // MARK: - Speech Synthesis
+    
     private func speakTranslation() {
+        
+        speechSynthesizer.stopSpeaking(at: .immediate)
+        
         let utterance = AVSpeechUtterance(string: translatedText)
-        let langCode = targetLanguage.locale.languageCode?.debugDescription ?? "en"
+        let langCode = targetLanguage.locale.languageCode?.debugDescription
         
-        if let voice = AVSpeechSynthesisVoice(language: langCode) {
-            utterance.voice = voice
-        } else {
-            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        }
+        utterance.voice = AVSpeechSynthesisVoice(language: langCode) ??
+            AVSpeechSynthesisVoice(language: targetLanguage.locale.languageCode?.debugDescription ?? "en-US")
         
-        AVSpeechSynthesizer().speak(utterance)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.9
+        utterance.pitchMultiplier = 1.0
+        utterance.volume = 1.0
+        utterance.preUtteranceDelay = 0
+        utterance.postUtteranceDelay = 0
+        
+        speechSynthesizer.speak(utterance)
     }
 
     // MARK: - Configuration
