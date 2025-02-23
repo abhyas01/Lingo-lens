@@ -2,7 +2,7 @@
 //  AnnotationDetailView.swift
 //  Lingo lens
 //
-//  Created by Abhyas Mall on 2/21/25.
+//  Created by Abhyas Mall on 2/18/25.
 //
 
 import SwiftUI
@@ -21,7 +21,10 @@ struct AnnotationDetailView: View {
     @State private var shouldTranslate: Bool = false
     @State private var configuration: TranslationSession.Configuration?
     @State private var showDownloadAlert: Bool = false
+    @State private var showLongLoadingWarning: Bool = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
+    
+    let loadingTimeout: TimeInterval = 10 // 10 seconds timeout
 
     var body: some View {
         VStack(spacing: 24) {
@@ -90,6 +93,20 @@ struct AnnotationDetailView: View {
                                     .scaleEffect(1.5)
                                 Text("Translating...")
                                     .foregroundStyle(.gray)
+                                
+                                if showLongLoadingWarning {
+                                    VStack(spacing: 8) {
+                                        Text("Taking longer than usual...")
+                                            .foregroundStyle(.gray)
+                                        
+                                        Button("Close and try again") {
+                                            dismiss()
+                                        }
+                                        .font(.subheadline)
+                                        .foregroundStyle(.blue)
+                                    }
+                                    .padding(.top, 8)
+                                }
                             }
                             .frame(maxWidth: .infinity, minHeight: 150)
                         }
@@ -129,28 +146,30 @@ struct AnnotationDetailView: View {
                         }
                     }
                     .frame(minHeight: 150)
-                    
-                    if !isTranslating && !translationError && translatedText.isEmpty {
-                        Button(action: startTranslation) {
-                            Text("Translate")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(12)
-                        }
-                        .padding(.horizontal)
-                    }
                 }
             }
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
-        .onAppear(perform: setupConfiguration)
+        .onAppear {
+            setupConfiguration()
+            startTranslation() // Auto-start translation
+            
+            // Start timer for long loading detection
+            DispatchQueue.main.asyncAfter(deadline: .now() + loadingTimeout) {
+                if isTranslating {
+                    showLongLoadingWarning = true
+                }
+            }
+        }
+        .onChange(of: isTranslating) { oldValue, newValue in
+            if !newValue {
+                showLongLoadingWarning = false
+            }
+        }
         .background(translationTaskBackground)
         .alert("Download Language", isPresented: $showDownloadAlert) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) { }
             Button("Settings") {
                 openAppSettings()
             }
@@ -184,9 +203,7 @@ struct AnnotationDetailView: View {
      }
     
     // MARK: - Speech Synthesis
-    
     private func speakTranslation() {
-        
         speechSynthesizer.stopSpeaking(at: .immediate)
         
         let utterance = AVSpeechUtterance(string: translatedText)

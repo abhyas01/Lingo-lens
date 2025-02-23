@@ -81,6 +81,10 @@ struct ContentView: View {
                     Button(action: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                             isSettingsExpanded.toggle()
+                            if isSettingsExpanded {
+                                arViewModel.isDetectionActive = false
+                                arViewModel.detectedObjectName = ""
+                            }
                         }
                     }) {
                         Image(systemName: "gear")
