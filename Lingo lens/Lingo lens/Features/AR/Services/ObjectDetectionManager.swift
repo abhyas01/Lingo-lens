@@ -71,7 +71,7 @@ class ObjectDetectionManager {
         }
         
         let request = VNCoreMLRequest(model: visionModel) { request, error in
-            if let error = error {
+            if let _ = error {
                 completion(nil)
                 return
             }
