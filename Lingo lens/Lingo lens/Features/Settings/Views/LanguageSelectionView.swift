@@ -80,7 +80,6 @@ struct LanguageSelectionView_Previews: PreviewProvider {
         )
         .environmentObject({
             let service = TranslationService()
-            // Add some sample languages
             service.availableLanguages = [
                 AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES")),
                 AvailableLanguage(locale: Locale.Language(languageCode: "fr", region: "FR")),

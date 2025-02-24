@@ -10,6 +10,7 @@ import SceneKit
 import Vision
 import UIKit
 
+/// Handles AR session updates and tap interactions for the object detection and annotation system
 class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     var arViewModel: ARViewModel
     private let objectDetectionManager = ObjectDetectionManager()
@@ -19,6 +20,10 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         super.init()
     }
     
+    // MARK: - Frame Processing
+    
+    /// Gets called on every camera frame when detection is active
+    /// Crops the camera feed to the bounding box area and runs object detection
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         guard arViewModel.isDetectionActive,
               let sceneView = arViewModel.sceneView else { return }
@@ -28,6 +33,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         let deviceOrientation = UIDevice.current.orientation
         let exifOrientation = deviceOrientation.exifOrientation
         
+        // Convert screen ROI to normalized coordinates for Vision
         let screenWidth = sceneView.bounds.width
         let screenHeight = sceneView.bounds.height
         let roi = arViewModel.adjustableROI
@@ -37,6 +43,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         var nw = roi.width  / screenWidth
         var nh = roi.height / screenHeight
         
+        // Clamp values to prevent out-of-bounds
         if nx < 0 { nx = 0 }
         if ny < 0 { ny = 0 }
         if nx + nw > 1 { nw = 1 - nx }
@@ -53,13 +60,17 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
+    // MARK: - Annotation Interaction
 
+    /// Handles taps on AR annotations in 3D space
+    /// Uses hit-testing to find the closest annotation to the tap location
     @objc func handleTap(_ gesture: UITapGestureRecognizer) {
         guard let sceneView = arViewModel.sceneView else { return }
         let location = gesture.location(in: sceneView)
         
         var closestAnnotation: (distance: CGFloat, text: String)? = nil
 
+        // Search through all annotations to find the one that was tapped
         for annotation in arViewModel.annotationNodes {
             guard let planeNode = annotation.node.childNode(withName: "annotationPlane", recursively: false),
                   let plane = planeNode.geometry as? SCNPlane,
@@ -73,6 +84,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             
             guard let hitResult = hitResults.first(where: { $0.node == planeNode }) else { continue }
             
+            // Convert hit location to annotation's local space
             let localPoint = hitResult.localCoordinates
             let normalizedX = (CGFloat(localPoint.x) / CGFloat(plane.width)) + 0.5
             let normalizedY = (CGFloat(localPoint.y) / CGFloat(plane.height)) + 0.5
@@ -82,10 +94,12 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             let skPoint = CGPoint(x: normalizedX * capsuleSize.width,
                                 y: (1 - normalizedY) * capsuleSize.height)
             
+            // Check if tap is within annotation's capsule shape
             let path = UIBezierPath(roundedRect: CGRect(origin: .zero, size: capsuleSize),
                                   cornerRadius: cornerRadius)
             
             if path.contains(skPoint) {
+                // Calculate distance to tap for closest annotation detection
                 let worldPos = planeNode.worldPosition
                 let projectedCenter = sceneView.projectPoint(worldPos)
                 let center = CGPoint(x: CGFloat(projectedCenter.x), y: CGFloat(projectedCenter.y))
@@ -99,6 +113,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             }
         }
         
+        // Show translation sheet for tapped annotation
         if let closest = closestAnnotation {
             arViewModel.selectedAnnotationText = closest.text
             arViewModel.isShowingAnnotationDetail = true

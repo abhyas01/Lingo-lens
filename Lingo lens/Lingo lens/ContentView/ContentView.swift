@@ -199,3 +199,39 @@ struct ContentView: View {
         }
     }
 }
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        
+        let mockTranslationService = TranslationService()
+        mockTranslationService.availableLanguages = [
+            AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES")),
+            AvailableLanguage(locale: Locale.Language(languageCode: "fr", region: "FR")),
+            AvailableLanguage(locale: Locale.Language(languageCode: "de", region: "DE"))
+        ]
+        
+        return Group {
+            ContentView()
+                .environmentObject(mockTranslationService)
+                .previewDisplayName("Normal State")
+            
+            ContentView()
+                .environmentObject(mockTranslationService)
+                .onAppear {
+                    let viewModel = ARViewModel()
+                    viewModel.isDetectionActive = true
+                    viewModel.detectedObjectName = "Coffee Cup"
+                    viewModel.adjustableROI = CGRect(x: 100, y: 100, width: 200, height: 200)
+                }
+                .previewDisplayName("Active Detection")
+            
+            ContentView()
+                .environmentObject(mockTranslationService)
+                .onAppear {
+                    let settingsVM = SettingsViewModel()
+                    settingsVM.isExpanded = true
+                }
+                .previewDisplayName("Settings Expanded")
+        }
+    }
+}

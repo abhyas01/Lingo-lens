@@ -33,3 +33,15 @@ struct DetectionLabel: View {
                 "Detected object: \(detectedObjectName)")
     }
 }
+
+#Preview {
+    VStack(spacing: 20) {
+        DetectionLabel(detectedObjectName: "")
+        
+        DetectionLabel(detectedObjectName: "Coffee Cup")
+        
+        DetectionLabel(detectedObjectName: "Large Professional Camera with Telephoto Lens")
+    }
+    .padding()
+    
+}

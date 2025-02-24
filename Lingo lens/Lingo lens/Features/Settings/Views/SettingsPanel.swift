@@ -103,3 +103,25 @@ struct SettingsPanel: View {
         .accessibilityHint("Removes all translation annotations from the screen")
     }
 }
+
+#Preview {
+    let arViewModel = ARViewModel()
+    let settingsViewModel = SettingsViewModel()
+    
+    arViewModel.selectedLanguage = AvailableLanguage(
+        locale: Locale.Language(languageCode: "es", region: "ES")
+    )
+    arViewModel.annotationScale = 1.0
+    settingsViewModel.isExpanded = true
+    
+    return ZStack {
+        
+        Color.black.opacity(0.3)
+            .ignoresSafeArea()
+        
+        SettingsPanel(
+            arViewModel: arViewModel,
+            settingsViewModel: settingsViewModel
+        )
+    }
+}

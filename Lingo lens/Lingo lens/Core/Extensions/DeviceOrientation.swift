@@ -7,6 +7,7 @@
 
 import UIKit
 
+/// Maps device orientation to EXIF orientation for correct image handling in AR and vision processing
 extension UIDeviceOrientation {
     
     var exifOrientation: CGImagePropertyOrientation {

@@ -7,6 +7,7 @@
 
 import CoreImage
 
+/// Conversion from CGImagePropertyOrientation to EXIF numeric values for proper image orientation in Vision tasks
 extension CGImagePropertyOrientation {
     
     var numericValue: Int32 {

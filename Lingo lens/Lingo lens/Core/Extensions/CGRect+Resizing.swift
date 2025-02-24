@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// CGRect with resizing capabilities that maintain constraints when adjusting bounding boxes
 extension CGRect {
     
     func resizedAndClamped(from oldSize: CGSize, to newSize: CGSize, margin: CGFloat = 8) -> CGRect {

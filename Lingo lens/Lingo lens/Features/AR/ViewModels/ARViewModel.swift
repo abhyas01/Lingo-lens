@@ -9,7 +9,12 @@ import SwiftUI
 import ARKit
 import SceneKit
 
+/// Core view model for AR functionality - handles object detection state, annotations,
+/// and manages the AR scene view. Works with ARCoordinator for actual AR session stuff.
 class ARViewModel: ObservableObject {
+    
+    // MARK: - Published State
+    
     @Published var isDetectionActive = false
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
@@ -24,9 +29,13 @@ class ARViewModel: ObservableObject {
     }
     @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
     
+    // Main AR view that we're managing
     weak var sceneView: ARSCNView?
     
+    // Stores all placed annotations and their metadata
     var annotationNodes: [(node: SCNNode, originalText: String, worldPos: SIMD3<Float>)] = []
+
+    // MARK: - Annotation Management
 
     private func updateAllAnnotationScales() {
         for (node, _, _) in annotationNodes {
@@ -34,6 +43,7 @@ class ARViewModel: ObservableObject {
         }
     }
 
+    /// Adds a new annotation at current ROI center if we can find a plane there
     func addAnnotation() {
         guard !detectedObjectName.isEmpty,
               !detectedObjectName.trimmingCharacters(in: .whitespaces).isEmpty else {
@@ -43,6 +53,7 @@ class ARViewModel: ObservableObject {
         guard let sceneView = sceneView,
               sceneView.session.currentFrame != nil else { return }
         
+        // Try to place annotation in center of bounding box
         let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
         
         if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
@@ -60,6 +71,7 @@ class ARViewModel: ObservableObject {
                     sceneView.scene.rootNode.addChildNode(annotationNode)
                 }
             } else {
+                // No plane found - show error briefly
                 DispatchQueue.main.async {
                     self.showPlacementError = true
                     
@@ -71,16 +83,21 @@ class ARViewModel: ObservableObject {
         }
     }
     
+    /// Clears all annotations from the scene
     func resetAnnotations() {
         for (node, _, _) in annotationNodes {
             node.removeFromParentNode()
         }
         annotationNodes.removeAll()
     }
+    
+    // MARK: - Annotation Visuals
 
+    /// Creates a capsule-shaped annotation node with text and styling
     private func createCapsuleAnnotation(with text: String) -> SCNNode {
         let validatedText = text.isEmpty ? "Unknown Object" : text
 
+        // Size calculations based on text length
         let baseWidth: CGFloat = 0.18
         let extraWidthPerChar: CGFloat = 0.005
         let maxTextWidth: CGFloat = 0.40
@@ -91,12 +108,14 @@ class ARViewModel: ObservableObject {
         let planeWidth = min(max(baseWidth + textCount * extraWidthPerChar, minTextWidth),
                              maxTextWidth)
         
+        // Create and style the plane
         let plane = SCNPlane(width: planeWidth, height: planeHeight)
         plane.cornerRadius = 0.015
         
         plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: validatedText, width: planeWidth, height: planeHeight)
         plane.firstMaterial?.isDoubleSided = true
         
+        // Setup node hierarchy for annotation
         let planeNode = SCNNode(geometry: plane)
         planeNode.name = "annotationPlane"
         planeNode.categoryBitMask = 1
@@ -111,6 +130,7 @@ class ARViewModel: ObservableObject {
         
         containerNode.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
         
+        // Make annotation always face the camera
         let billboard = SCNBillboardConstraint()
         billboard.freeAxes = [.X, .Y, .Z]
         containerNode.constraints = [billboard]
@@ -118,6 +138,7 @@ class ARViewModel: ObservableObject {
         return containerNode
     }
     
+    /// Creates a 2D scene for the annotation's visual appearance
     private func makeCapsuleSKScene(with text: String, width: CGFloat, height: CGFloat) -> SKScene {
         let sceneSize = CGSize(width: 400, height: 140)
         let scene = SKScene(size: sceneSize)
@@ -168,6 +189,7 @@ class ARViewModel: ObservableObject {
         return scene
     }
     
+    /// Handles text wrapping and truncation for annotation labels
     private func processTextIntoLines(_ text: String, maxCharsPerLine: Int) -> [String] {
         var lines = [String]()
         var words = text.split(separator: " ").map(String.init)

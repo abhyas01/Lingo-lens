@@ -102,3 +102,65 @@ struct ControlBar: View {
         .padding(.trailing)
     }
 }
+
+#Preview {
+    let arViewModel = ARViewModel()
+    let settingsViewModel = SettingsViewModel()
+    
+    return Group {
+        
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+            
+            ControlBar(
+                arViewModel: arViewModel,
+                settingsViewModel: settingsViewModel
+            )
+        }
+        
+        
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+            
+            ControlBar(
+                arViewModel: arViewModel,
+                settingsViewModel: settingsViewModel
+            )
+        }
+        .onAppear {
+            arViewModel.isDetectionActive = true
+            arViewModel.detectedObjectName = "Coffee Cup"
+        }
+        
+        
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+            
+            ControlBar(
+                arViewModel: arViewModel,
+                settingsViewModel: settingsViewModel
+            )
+        }
+        .onAppear {
+            settingsViewModel.isExpanded = true
+        }
+        
+        
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+            
+            ControlBar(
+                arViewModel: arViewModel,
+                settingsViewModel: settingsViewModel
+            )
+        }
+        .onAppear {
+            arViewModel.isDetectionActive = true
+            arViewModel.detectedObjectName = ""
+        }
+    }
+}

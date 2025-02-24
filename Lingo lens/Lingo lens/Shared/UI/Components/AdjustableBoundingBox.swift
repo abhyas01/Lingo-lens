@@ -7,14 +7,18 @@
 
 import SwiftUI
 
+/// Custom draggable and resizable bounding box for object detection
+/// Box stays within camera view bounds and maintains minimum detection area
 struct AdjustableBoundingBox: View {
     @Binding var roi: CGRect
     @State private var initialBoxROI: CGRect? = nil
     @State private var boxDragOffset: CGSize = .zero
     @State private var initialHandleROI: CGRect? = nil
     
+    /// Min space between box edge and screen edge
     private let margin: CGFloat = 4
     
+    /// Positions for middle drag handles on each edge
     private enum EdgePosition: String {
         case top = "Top"
         case bottom = "Bottom"
@@ -22,6 +26,7 @@ struct AdjustableBoundingBox: View {
         case trailing = "Right"
     }
     
+    /// Positions for corner resize handles
     enum HandlePosition: String {
         case topLeft = "Top left"
         case topRight = "Top right"
@@ -29,8 +34,11 @@ struct AdjustableBoundingBox: View {
         case bottomRight = "Bottom right"
     }
     
+    /// Size of the AR camera view for bounds checking
     var containerSize: CGSize
     
+    // MARK: - Main Box Layout
+
     var body: some View {
         ZStack {
             
@@ -61,8 +69,9 @@ struct AdjustableBoundingBox: View {
         .allowsHitTesting(true)
     }
     
-    // MARK: - Edge Handles
-    
+    // MARK: - Edge Handle Controls
+
+    /// Creates a grabber icon for dragging entire box from any edge
     private func edgeHandleView(for position: EdgePosition) -> some View {
         Image(systemName: "square.arrowtriangle.4.outward")
             .font(.system(size: 25))
@@ -73,6 +82,7 @@ struct AdjustableBoundingBox: View {
             .accessibilityHint("Drag to move the detection box")
     }
     
+    /// Gets screen position for edge handles based on current box location
     private func edgePosition(for position: EdgePosition) -> CGPoint {
         switch position {
         case .top:
@@ -86,6 +96,9 @@ struct AdjustableBoundingBox: View {
         }
     }
     
+    // MARK: - Box Movement
+    
+    /// Core drag gesture for moving the entire box within screen bounds
     private var mainDragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
@@ -149,6 +162,9 @@ struct AdjustableBoundingBox: View {
             }
     }
     
+    // MARK: - Corner Resizing
+
+    /// Creates draggable circles at corners for resizing box
     @ViewBuilder
     private func handleView(for position: HandlePosition) -> some View {
         Circle()
@@ -215,6 +231,7 @@ struct AdjustableBoundingBox: View {
             .accessibilityHint("Drag to resize the detection box")
     }
     
+    /// Defines larger tap targets around box edges and corners
     private struct CombinedContentShape: Shape {
         let roi: CGRect
         let containerSize: CGSize
@@ -281,6 +298,7 @@ struct AdjustableBoundingBox: View {
         }
     }
     
+    /// Gets screen position for corner handles based on current box size
     private func handlePosition(for position: HandlePosition) -> CGPoint {
         switch position {
         case .topLeft: return CGPoint(x: roi.minX, y: roi.minY)
@@ -290,6 +308,7 @@ struct AdjustableBoundingBox: View {
         }
     }
     
+    /// Ensures box stays within screen bounds and maintains minimum size
     private func clampROI(_ rect: CGRect) -> CGRect {
         var newRect = rect
         newRect.origin.x = max(margin, newRect.origin.x)

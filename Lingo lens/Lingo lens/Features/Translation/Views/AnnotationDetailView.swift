@@ -45,7 +45,7 @@ struct AnnotationDetailView: View {
             
             ScrollView {
                 VStack(spacing: 24) {
-                    // Original Text Section
+                    
                     VStack(spacing: 12) {
                         Text("Original Word")
                             .font(.subheadline)
@@ -266,5 +266,44 @@ struct AnnotationDetailView: View {
             }
         }
         .hidden()
+    }
+}
+
+#Preview {
+    let translationService = TranslationService()
+    translationService.translatedText = "Mesa"
+    
+    let targetLanguage = AvailableLanguage(
+        locale: Locale.Language(languageCode: "es", region: "ES")
+    )
+    
+    return Group {
+        
+        AnnotationDetailView(
+            originalText: "Table",
+            targetLanguage: targetLanguage
+        )
+        .environmentObject(translationService)
+        
+        
+        AnnotationDetailView(
+            originalText: "Chair",
+            targetLanguage: targetLanguage
+        )
+        .environmentObject(translationService)
+        .onAppear {
+            translationService.translatedText = ""
+        }
+        
+    
+        AnnotationDetailView(
+            originalText: "Window",
+            targetLanguage: targetLanguage
+        )
+        .environmentObject(translationService)
+        .onAppear {
+            
+            translationService.translatedText = "Translation failed. Try downloading the language."
+        }
     }
 }
