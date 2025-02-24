@@ -13,17 +13,16 @@ import ImageIO
 
 class ObjectDetectionManager {
     private var visionModel: VNCoreMLModel?
-    private let ciContext = CIContext() 
-    
+    private let ciContext = CIContext()
     private let insideMargin: CGFloat = 4
-    
+
     init() {
-        let model = try! MobileNetV2FP16(configuration: MLModelConfiguration()).model
-//        let model = try! FastViTT8F16(configuration: MLModelConfiguration()).model
         do {
+            let model = try MobileNetV2FP16(configuration: MLModelConfiguration()).model
+//            let model = try! FastViTT8F16(configuration: MLModelConfiguration()).model
             visionModel = try VNCoreMLModel(for: model)
         } catch {
-            print("Error loading ML model: \(error)")
+            visionModel = nil
         }
     }
     
@@ -67,14 +66,12 @@ class ObjectDetectionManager {
         ciImage = ciImage.cropped(to: cropRect)
         
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
-            print("Failed to create CGImage from CIImage.")
             completion(nil)
             return
         }
         
         let request = VNCoreMLRequest(model: visionModel) { request, error in
             if let error = error {
-                print("Vision request error: \(error)")
                 completion(nil)
                 return
             }
@@ -95,7 +92,6 @@ class ObjectDetectionManager {
         do {
             try handler.perform([request])
         } catch {
-            print("Failed to perform Vision request: \(error)")
             completion(nil)
         }
     }
