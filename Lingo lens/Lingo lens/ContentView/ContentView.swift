@@ -139,14 +139,17 @@ struct ContentView: View {
                 showInfoPopover = false
             }
         }
+        
         .onChange(of: settingsViewModel.isExpanded) { _, isExpanded in
             if isExpanded {
                 showInfoPopover = false
             }
         }
+        
         .sheet(isPresented: $showInstructions) {
             InstructionsView()
         }
+        
         .sheet(isPresented: $settingsViewModel.showLanguageSelection) {
             LanguageSelectionView(
                 selectedLanguage: $arViewModel.selectedLanguage,
@@ -154,6 +157,7 @@ struct ContentView: View {
             )
             .environmentObject(translationService)
         }
+        
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {
             if let originalText = arViewModel.selectedAnnotationText {
                 AnnotationDetailView(
@@ -180,7 +184,7 @@ struct ContentView: View {
                     }
                     previousSize = geo.size
                 }
-                // Update GeometryReader onChange to new syntax
+                
                 .onChange(of: geo.size) { oldSize, newSize in
                     guard newSize != previousSize else { return }
                     arViewModel.adjustableROI = arViewModel.adjustableROI
