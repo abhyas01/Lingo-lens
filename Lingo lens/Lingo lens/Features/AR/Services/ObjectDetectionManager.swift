@@ -23,7 +23,7 @@ class ObjectDetectionManager {
     /// Loads and configures ML model for object detection
     init() {
         do {
-            let model = try MobileNetV2(configuration: MLModelConfiguration()).model
+            let model = try FastViTMA36F16(configuration: MLModelConfiguration()).model
             visionModel = try VNCoreMLModel(for: model)
         } catch {
             visionModel = nil
@@ -89,10 +89,10 @@ class ObjectDetectionManager {
                 return
             }
             
-            // Return highest confidence detection if it's above 30%
+            // Return highest confidence detection if it's above 50%
             guard let results = request.results as? [VNClassificationObservation],
                   let best = results.first,
-                  best.confidence > 0.3 else {
+                  best.confidence > 0.5 else {
                 completion(nil)
                 return
             }
