@@ -75,7 +75,6 @@ struct ARTranslationView: View {
     private var mainARView: some View {
         ZStack {
             ARViewContainer(arViewModel: arViewModel)
-                .edgesIgnoringSafeArea(.all)
             
             if arViewModel.isDetectionActive {
                 boundingBoxView

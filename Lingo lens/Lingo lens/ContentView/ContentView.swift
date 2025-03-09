@@ -33,12 +33,6 @@ struct ContentView: View {
                 }
                 .tag(Tab.savedTranslationsView)
         }
-        .onAppear {
-            let appearance = UITabBarAppearance()
-            appearance.configureWithDefaultBackground()
-            UITabBar.appearance().standardAppearance = appearance
-            UITabBar.appearance().scrollEdgeAppearance = appearance
-        }
     }
 }
 

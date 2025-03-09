@@ -38,24 +38,28 @@ struct SavedTranslationsView: View {
     }
     
     private var emptyStateView: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "book.closed")
-                .font(.system(size: 70))
-                .foregroundColor(.blue.opacity(0.7))
-                .padding(.bottom, 8)
+        VStack{
+            Spacer()
             
-            Text("No Saved Translations")
-                .font(.title2.bold())
-            
-            Text("Your saved words will appear here.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            VStack {
+                Image(systemName: "book.closed")
+                    .font(.system(size: 70))
+                    .foregroundColor(.blue.opacity(0.7))
+                    .padding(.bottom, 8)
+                
+                Text("No Saved Translations")
+                    .font(.title2.bold())
+                    .padding(.bottom, 8)
+                
+                Text("Your saved words will appear here.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
             
             Spacer()
         }
-        .padding(.top, 50)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
     }
