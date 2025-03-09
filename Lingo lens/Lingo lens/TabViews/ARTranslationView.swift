@@ -42,11 +42,13 @@ struct ARTranslationView: View {
         .onAppear(perform: cameraPermissionManager.checkPermission)
         .onChange(of: isActiveTab) { oldValue, newValue in
             if newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                DispatchQueue.main.async {
+                    arViewModel.resetAnnotations()
                     arViewModel.resumeARSession()
                 }
             } else {
                 arViewModel.pauseARSession()
+                arViewModel.resetAnnotations()
             }
         }
     }

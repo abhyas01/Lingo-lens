@@ -13,8 +13,15 @@ import SceneKit
 /// and manages the AR scene view. Works with ARCoordinator for actual AR session stuff.
 class ARViewModel: ObservableObject {
     
+    enum ARSessionState {
+        case inactive
+        case active
+        case paused
+    }
+    
     // MARK: - Published State
     
+    @Published var sessionState: ARSessionState = .inactive
     @Published var isDetectionActive = false
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
@@ -47,8 +54,9 @@ class ARViewModel: ObservableObject {
         isDetectionActive = false
         detectedObjectName = ""
         
-        if let sceneView = sceneView, sceneView.session.configuration != nil {
+        if let sceneView = sceneView {
             sceneView.session.pause()
+            sessionState = .paused
         }
     }
 
@@ -64,6 +72,8 @@ class ARViewModel: ObservableObject {
         }
         
         sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+        
+        sessionState = .active
     }
     
     /// Adds a new annotation at current ROI center if we can find a plane there
