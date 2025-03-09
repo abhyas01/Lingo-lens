@@ -1,3 +1,10 @@
+//
+//  ContentView.swift
+//  Lingo lens
+//
+//  Created by Abhyas Mall on 2/18/25.
+//
+
 import SwiftUI
 
 struct ContentView: View {
