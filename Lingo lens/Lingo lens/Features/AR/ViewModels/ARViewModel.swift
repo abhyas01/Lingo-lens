@@ -63,17 +63,18 @@ class ARViewModel: ObservableObject {
     func resumeARSession() {
         guard let sceneView = sceneView else { return }
         
-        let configuration = ARWorldTrackingConfiguration()
-        configuration.planeDetection = [.horizontal, .vertical]
-        configuration.environmentTexturing = .automatic
-        
-        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
-            configuration.sceneReconstruction = .mesh
+        if sessionState != .active {
+            let configuration = ARWorldTrackingConfiguration()
+            configuration.planeDetection = [.horizontal, .vertical]
+            configuration.environmentTexturing = .automatic
+            
+            if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+                configuration.sceneReconstruction = .mesh
+            }
+            
+            sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+            sessionState = .active
         }
-        
-        sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
-        
-        sessionState = .active
     }
     
     /// Adds a new annotation at current ROI center if we can find a plane there
