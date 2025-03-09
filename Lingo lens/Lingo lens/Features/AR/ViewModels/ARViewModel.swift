@@ -14,14 +14,13 @@ import SceneKit
 class ARViewModel: ObservableObject {
     
     enum ARSessionState {
-        case inactive
         case active
         case paused
     }
     
     // MARK: - Published State
     
-    @Published var sessionState: ARSessionState = .inactive
+    @Published var sessionState: ARSessionState = .active
     @Published var isDetectionActive = false
     @Published var detectedObjectName: String = ""
     @Published var adjustableROI: CGRect = .zero
