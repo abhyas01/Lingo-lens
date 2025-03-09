@@ -11,32 +11,51 @@ import AVFoundation
 
 struct ARTranslationView: View {
     @ObservedObject var arViewModel: ARViewModel
-    
     @StateObject private var settingsViewModel = SettingsViewModel()
     @StateObject private var cameraPermissionManager = CameraPermissionManager()
     @State private var previousSize: CGSize = .zero
     @State private var showInstructions = false
-    @State private var showInfoPopover = true
     @EnvironmentObject var translationService: TranslationService
     
     var isActiveTab: Bool
 
     var body: some View {
-        Group {
-            if cameraPermissionManager.showPermissionAlert {
-                CameraPermissionView(
-                    openSettings: {
-                        cameraPermissionManager.openAppSettings()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        NavigationStack {
+            Group {
+                if cameraPermissionManager.showPermissionAlert {
+                    CameraPermissionView(
+                        openSettings: {
+                            cameraPermissionManager.openAppSettings()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                cameraPermissionManager.checkPermission()
+                            }
+                        },
+                        recheckPermission: {
                             cameraPermissionManager.checkPermission()
                         }
-                    },
-                    recheckPermission: {
-                        cameraPermissionManager.checkPermission()
+                    )
+                } else {
+                    mainARView
+                }
+            }
+            .navigationTitle("Translate")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        arViewModel.isDetectionActive = false
+                        arViewModel.detectedObjectName = ""
+                        showInstructions = true
+                    }) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(.primary)
+                            .accessibilityLabel("Instructions")
+                            .accessibilityHint("Learn how to use the Translate Feature")
                     }
-                )
-            } else {
-                mainARView
+                }
             }
         }
         .onAppear(perform: cameraPermissionManager.checkPermission)
@@ -63,55 +82,10 @@ struct ARTranslationView: View {
             }
             
             VStack {
-                HStack {
-                    Spacer()
-                    ZStack(alignment: .topTrailing) {
-                        Button(action: {
-                            arViewModel.isDetectionActive = false
-                            arViewModel.detectedObjectName = ""
-                            showInstructions = true
-                            showInfoPopover = false
-                        }) {
-                            Image(systemName: "info.circle.fill")
-                                .font(.system(size: 15))
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(Color.gray.opacity(0.7))
-                                .clipShape(Circle())
-                                .accessibilityLabel("Instructions")
-                                .accessibilityHint("Learn how to use Lingo Lens")
-                        }
-                        
-                        if showInfoPopover {
-                            VStack(alignment: .trailing, spacing: 8) {
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "arrow.up")
-                                        .foregroundColor(.white)
-                                        .padding(.trailing, 12)
-                                }
-                                
-                                HStack(spacing: 8) {
-                                    Image(systemName: "info.circle.fill")
-                                        .foregroundStyle(.white)
-                                        .clipShape(Circle())
-                                    
-                                    Text("Tap here to learn how to use the app")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                        .accessibilityAddTraits(.isStaticText)
-                                }
-                                .padding(12)
-                                .background(Color.gray.opacity(0.7))
-                                .cornerRadius(12)
-                            }
-                            .offset(y: 45)
-                            .transition(.opacity.combined(with: .scale))
-                            .animation(.easeInOut, value: showInfoPopover)
-                        }
-                    }
+                if arViewModel.isDetectionActive {
+                    DetectionLabel(detectedObjectName: arViewModel.detectedObjectName)
+                        .padding(.top, 10)
                 }
-                .padding()
                 
                 if arViewModel.showPlacementError {
                     Text(arViewModel.placementErrorMessage)
@@ -124,10 +98,6 @@ struct ARTranslationView: View {
                         .transition(.opacity)
                         .zIndex(1)
                         .accessibilityAddTraits(.updatesFrequently)
-                }
-                
-                if arViewModel.isDetectionActive {
-                    DetectionLabel(detectedObjectName: arViewModel.detectedObjectName)
                 }
                 
                 Spacer()
@@ -147,18 +117,6 @@ struct ARTranslationView: View {
         }
         
         .animation(.easeInOut, value: arViewModel.showPlacementError)
-        
-        .onChange(of: arViewModel.isDetectionActive) { _, isActive in
-            if isActive {
-                showInfoPopover = false
-            }
-        }
-        
-        .onChange(of: settingsViewModel.isExpanded) { _, isExpanded in
-            if isExpanded {
-                showInfoPopover = false
-            }
-        }
         
         .sheet(isPresented: $showInstructions) {
             InstructionsView()

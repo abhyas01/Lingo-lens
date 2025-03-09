@@ -16,7 +16,7 @@ struct InstructionsView: View {
             VStack(spacing: 24) {
                 
                 HStack {
-                    Text("How to Use Lingo Lens")
+                    Text("How to use the Translate Feature")
                         .font(.title.bold())
                     Spacer()
                     Button(action: { dismiss() }) {
