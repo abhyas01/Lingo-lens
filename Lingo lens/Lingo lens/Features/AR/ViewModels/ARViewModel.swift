@@ -43,6 +43,29 @@ class ARViewModel: ObservableObject {
         }
     }
 
+    func pauseARSession() {
+        isDetectionActive = false
+        detectedObjectName = ""
+        
+        if let sceneView = sceneView, sceneView.session.configuration != nil {
+            sceneView.session.pause()
+        }
+    }
+
+    func resumeARSession() {
+        guard let sceneView = sceneView else { return }
+        
+        let configuration = ARWorldTrackingConfiguration()
+        configuration.planeDetection = [.horizontal, .vertical]
+        configuration.environmentTexturing = .automatic
+        
+        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+            configuration.sceneReconstruction = .mesh
+        }
+        
+        sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+    }
+    
     /// Adds a new annotation at current ROI center if we can find a plane there
     func addAnnotation() {
         guard !detectedObjectName.isEmpty,

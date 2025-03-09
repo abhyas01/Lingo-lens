@@ -8,10 +8,13 @@
 import SwiftUI
 import Translation
 import AVFoundation
+import CoreData
 
 struct AnnotationDetailView: View {
     @EnvironmentObject var translationService: TranslationService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+     
     let originalText: String
     let targetLanguage: AvailableLanguage
 
@@ -22,6 +25,7 @@ struct AnnotationDetailView: View {
     @State private var configuration: TranslationSession.Configuration?
     @State private var showDownloadAlert: Bool = false
     @State private var showLongLoadingWarning: Bool = false
+    @State private var showSavedConfirmation: Bool = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     
     let loadingTimeout: TimeInterval = 10
@@ -77,18 +81,33 @@ struct AnnotationDetailView: View {
                                     .background(Color.blue.opacity(0.1))
                                     .cornerRadius(12)
                                 
-                                Button(action: speakTranslation) {
-                                    Label("Listen", systemImage: "speaker.wave.2.fill")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.blue)
-                                        .cornerRadius(12)
+                                HStack(spacing: 12) {
+                                    Button(action: speakTranslation) {
+                                        Label("Listen", systemImage: "speaker.wave.2.fill")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.blue)
+                                            .cornerRadius(12)
+                                    }
+                                    .accessibilityLabel("Listen to pronunciation")
+                                    .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.localizedName())")
+                                    
+                                    Button(action: saveTranslation) {
+                                        Label(showSavedConfirmation ? "Saved" : "Save",
+                                              systemImage: showSavedConfirmation ? "checkmark" : "bookmark.fill")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(showSavedConfirmation ? Color.green : Color.orange)
+                                            .cornerRadius(12)
+                                    }
+                                    .accessibilityLabel("Save translation")
+                                    .accessibilityHint("Save this translation to your collection")
+                                    .disabled(showSavedConfirmation)
                                 }
-                                .accessibilityLabel("Listen to pronunciation")
-                                .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.localizedName())")
-                                
                             }
                             .padding(.horizontal)
                         }
@@ -187,6 +206,34 @@ struct AnnotationDetailView: View {
             }
         } message: {
             Text("Please go to: Settings > Apps > Translate > Downloaded Languages.\nThen download this language.")
+        }
+        .animation(.spring(response: 0.3), value: showSavedConfirmation)
+    }
+    
+    private func saveTranslation() {
+        let newTranslation = SavedTranslation(context: viewContext)
+        
+        newTranslation.id = UUID()
+        newTranslation.originalText = originalText
+        newTranslation.translatedText = translatedText
+        newTranslation.languageCode = targetLanguage.shortName()
+        newTranslation.languageName = targetLanguage.localizedName()
+        newTranslation.dateAdded = Date()
+        
+        do {
+            try viewContext.save()
+            
+            withAnimation {
+                showSavedConfirmation = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation {
+                    showSavedConfirmation = false
+                }
+            }
+        } catch {
+            print("Error saving translation: \(error.localizedDescription)")
         }
     }
     
@@ -302,7 +349,6 @@ struct AnnotationDetailView: View {
         )
         .environmentObject(translationService)
         .onAppear {
-            
             translationService.translatedText = "Translation failed. Try downloading the language."
         }
     }

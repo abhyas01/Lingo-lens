@@ -10,11 +10,13 @@ import SwiftUI
 @main
 struct Lingo_lensApp: App {
     @StateObject private var translationService = TranslationService()
-
+    let persistenceController = PersistenceController.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(translationService)
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
