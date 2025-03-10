@@ -13,7 +13,7 @@ struct ContentView: View {
 
     enum Tab {
         case arTranslationView
-        case savedTranslationsView
+        case savedWordsView
     }
     
     @State private var selectedTab: Tab = .arTranslationView
@@ -27,11 +27,11 @@ struct ContentView: View {
                 }
                 .tag(Tab.arTranslationView)
             
-            SavedTranslationsView()
+            SavedWords()
                 .tabItem {
                     Label("Saved Words", systemImage: "bookmark.fill")
                 }
-                .tag(Tab.savedTranslationsView)
+                .tag(Tab.savedWordsView)
         }
     }
 }

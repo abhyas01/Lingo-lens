@@ -10,29 +10,25 @@ import CoreData
 
 struct SavedTranslationsView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @FetchRequest(
-        entity: SavedTranslation.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \SavedTranslation.dateAdded, ascending: false)],
-        animation: .default
-    ) var savedTranslations: FetchedResults<SavedTranslation>
+    @FetchRequest var savedTranslations: FetchedResults<SavedTranslation>
     
-    @State private var selectedTranslation: SavedTranslation?
-    @State private var showingDetailView = false
+    init(query: String) {
+        let predicate: NSPredicate? = query.isEmpty ? nil : NSPredicate(
+            format: "languageName CONTAINS[cd] %@ OR originalText CONTAINS[cd] %@ OR translatedText CONTAINS[cd] %@",
+            query, query, query
+        )
+        
+        _savedTranslations = FetchRequest<SavedTranslation>(sortDescriptors: [
+            NSSortDescriptor(key: "dateAdded", ascending: false)
+        ], predicate: predicate, animation: .default)
+    }
     
     var body: some View {
-        NavigationView {
-            Group {
-                if savedTranslations.isEmpty {
-                    emptyStateView
-                } else {
-                    savedWordsList
-                }
-            }
-            .navigationTitle("Saved Words")
-        }
-        .sheet(isPresented: $showingDetailView) {
-            if let translation = selectedTranslation {
-                SavedTranslationDetailView(translation: translation)
+        Group {
+            if !savedTranslations.isEmpty {
+                savedWordsList
+            } else {
+                emptyStateView
             }
         }
     }
@@ -66,14 +62,18 @@ struct SavedTranslationsView: View {
     
     private var savedWordsList: some View {
         List {
+            Section {
+                Text("Total: \(savedTranslations.count)")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            
             ForEach(savedTranslations, id: \.id) { translation in
-                Button(action: {
-                    selectedTranslation = translation
-                    showingDetailView = true
-                }) {
+                NavigationLink {
+                    SavedTranslationDetailView(translation: translation)
+                } label: {
                     translationRow(translation)
                 }
-                .buttonStyle(.plain)
             }
             .onDelete(perform: deleteTranslations)
         }
@@ -94,7 +94,7 @@ struct SavedTranslationsView: View {
             
             Spacer()
             
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: 4) {
                 Text(flagEmoji(for: translation.languageCode ?? ""))
                     .font(.title3)
                 
@@ -104,6 +104,7 @@ struct SavedTranslationsView: View {
                         .foregroundStyle(.secondary.opacity(0.7))
                 }
             }
+            .padding(.trailing, 5)
         }
         .padding(.vertical, 4)
     }
@@ -135,7 +136,6 @@ struct SavedTranslationsView: View {
     private func deleteTranslations(at offsets: IndexSet) {
         withAnimation {
             offsets.map { savedTranslations[$0] }.forEach(viewContext.delete)
-            
             do {
                 try viewContext.save()
             } catch {
@@ -146,6 +146,6 @@ struct SavedTranslationsView: View {
 }
 
 #Preview {
-    SavedTranslationsView()
+    SavedTranslationsView(query: "")
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

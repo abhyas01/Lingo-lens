@@ -11,27 +11,12 @@ import AVFoundation
 
 struct SavedTranslationDetailView: View {
     let translation: SavedTranslation
-    @Environment(\.dismiss) private var dismiss
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     
     var body: some View {
         VStack(spacing: 24) {
-            HStack {
-                Spacer()
-                
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.gray)
-                }
-                .accessibilityLabel("Close translation details")
-            }
-            .padding(.horizontal)
-            .padding(.top, 10)
-            
             ScrollView {
                 VStack(spacing: 24) {
-                    // Language header with flag
                     VStack(spacing: 8) {
                         Text(flagEmoji(for: translation.languageCode ?? ""))
                             .font(.system(size: 70))
@@ -42,7 +27,6 @@ struct SavedTranslationDetailView: View {
                     }
                     .padding(.bottom, 8)
                     
-                    // Original text
                     VStack(spacing: 12) {
                         Text("Original Word")
                             .font(.subheadline)
@@ -58,7 +42,6 @@ struct SavedTranslationDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Translation text
                     VStack(spacing: 12) {
                         Text("Translation")
                             .font(.subheadline)
@@ -86,7 +69,6 @@ struct SavedTranslationDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Date information
                     if let date = translation.dateAdded {
                         Text("Saved on \(formatDateTime(date))")
                             .font(.caption)
@@ -97,8 +79,6 @@ struct SavedTranslationDetailView: View {
                 .padding(.bottom, 20)
             }
         }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
     }
     
     private func speakTranslation() {

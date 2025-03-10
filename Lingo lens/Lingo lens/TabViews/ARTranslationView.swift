@@ -26,9 +26,6 @@ struct ARTranslationView: View {
                     CameraPermissionView(
                         openSettings: {
                             cameraPermissionManager.openAppSettings()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                cameraPermissionManager.checkPermission()
-                            }
                         },
                         recheckPermission: {
                             cameraPermissionManager.checkPermission()
@@ -60,14 +57,16 @@ struct ARTranslationView: View {
         }
         .onAppear(perform: cameraPermissionManager.checkPermission)
         .onChange(of: isActiveTab) { oldValue, newValue in
-            if newValue {
-                DispatchQueue.main.async {
+            if !cameraPermissionManager.showPermissionAlert {
+                if newValue {
+                    DispatchQueue.main.async {
+                        arViewModel.resetAnnotations()
+                        arViewModel.resumeARSession()
+                    }
+                } else {
+                    arViewModel.pauseARSession()
                     arViewModel.resetAnnotations()
-                    arViewModel.resumeARSession()
                 }
-            } else {
-                arViewModel.pauseARSession()
-                arViewModel.resetAnnotations()
             }
         }
     }
