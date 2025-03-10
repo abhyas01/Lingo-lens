@@ -97,6 +97,7 @@ class ARViewModel: ObservableObject {
                     
                     let annotationNode = self.createCapsuleAnnotation(with: self.detectedObjectName)
                     annotationNode.simdTransform = result.worldTransform
+                    annotationNode.scale = SCNVector3(self.annotationScale, self.annotationScale, self.annotationScale)
                     let worldPos = SIMD3<Float>(result.worldTransform.columns.3.x,
                                                result.worldTransform.columns.3.y,
                                                result.worldTransform.columns.3.z)
