@@ -10,14 +10,16 @@ import ARKit
 import AVFoundation
 
 struct ARTranslationView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var arViewModel: ARViewModel
     @StateObject private var settingsViewModel = SettingsViewModel()
     @StateObject private var cameraPermissionManager = CameraPermissionManager()
     @State private var previousSize: CGSize = .zero
     @State private var showInstructions = false
+    @State private var alreadyResumedARSession = false
+    @State private var showAlertAboutReset = false
+    @State private var neverShowAlertAboutReset = false
     @EnvironmentObject var translationService: TranslationService
-    
-    var isActiveTab: Bool
 
     var body: some View {
         NavigationStack {
@@ -55,19 +57,38 @@ struct ARTranslationView: View {
                 }
             }
         }
-        .onAppear(perform: cameraPermissionManager.checkPermission)
-        .onChange(of: isActiveTab) { oldValue, newValue in
+        .onAppear {
+            cameraPermissionManager.checkPermission()
             if !cameraPermissionManager.showPermissionAlert {
-                if newValue {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    arViewModel.resetAnnotations()
+                    arViewModel.resumeARSession()
+                    alreadyResumedARSession = true
+                }
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            switch newPhase {
+            case .active:
+                if !alreadyResumedARSession {
+                    if !cameraPermissionManager.showPermissionAlert {
                         arViewModel.resetAnnotations()
                         arViewModel.resumeARSession()
                     }
-                } else {
-                    arViewModel.pauseARSession()
-                    arViewModel.resetAnnotations()
                 }
+            case .background:
+                arViewModel.pauseARSession()
+                arViewModel.resetAnnotations()
+                alreadyResumedARSession = false
+                showAlertAboutReset = neverShowAlertAboutReset ? false : true
+            default:
+                break
             }
+        }
+        .onDisappear {
+            arViewModel.pauseARSession()
+            arViewModel.resetAnnotations()
+            showAlertAboutReset = neverShowAlertAboutReset ? false : true
         }
     }
     
@@ -112,6 +133,14 @@ struct ARTranslationView: View {
                     settingsViewModel: settingsViewModel
                 )
             }
+        }
+        .alert("Removed all labels from objects", isPresented: $showAlertAboutReset) {
+            Button("Ok") {}
+            Button("Don't Warn Again", role: .destructive) {
+                neverShowAlertAboutReset = true
+            }
+        } message: {
+            Text("Whenever you leave the Translate tab, all labels will be removed from the objects in the real world.")
         }
         
         .animation(.easeInOut, value: arViewModel.showPlacementError)
@@ -183,11 +212,11 @@ struct ARTranslationView_Previews: PreviewProvider {
         let arViewModel = ARViewModel()
         
         return Group {
-            ARTranslationView(arViewModel: arViewModel, isActiveTab: true)
+            ARTranslationView(arViewModel: arViewModel)
                 .environmentObject(mockTranslationService)
                 .previewDisplayName("Normal State")
             
-            ARTranslationView(arViewModel: arViewModel, isActiveTab: true)
+            ARTranslationView(arViewModel: arViewModel)
                 .environmentObject(mockTranslationService)
                 .onAppear {
                     let viewModel = ARViewModel()
@@ -197,7 +226,7 @@ struct ARTranslationView_Previews: PreviewProvider {
                 }
                 .previewDisplayName("Active Detection")
             
-            ARTranslationView(arViewModel: arViewModel, isActiveTab: true)
+            ARTranslationView(arViewModel: arViewModel)
                 .environmentObject(mockTranslationService)
                 .onAppear {
                     let settingsVM = SettingsViewModel()

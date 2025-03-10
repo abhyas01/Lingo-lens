@@ -20,7 +20,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            ARTranslationView(arViewModel: arViewModel, isActiveTab: selectedTab == .arTranslationView)
+            ARTranslationView(arViewModel: arViewModel)
                 .environmentObject(translationService)
                 .tabItem {
                     Label("Translate", systemImage: "camera.viewfinder")
