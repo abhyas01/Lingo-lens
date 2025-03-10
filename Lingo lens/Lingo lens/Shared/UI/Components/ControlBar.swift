@@ -23,27 +23,27 @@ struct ControlBar: View {
     
     private var settingsButton: some View {
         Button(action: {
-            settingsViewModel.toggleExpanded()
+            withAnimation {
+                settingsViewModel.toggleExpanded()
+            }
             if settingsViewModel.isExpanded {
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             }
         }) {
-            Image(systemName: "gear")
+            Image(systemName: "textformat.size")
                 .font(.system(size: 30))
                 .foregroundColor(.white)
-                .padding(12)
+                .padding(16)
                 .background(Color.gray.opacity(0.7))
                 .clipShape(Circle())
+                .opacity(settingsViewModel.isExpanded ? 0.3 : 1)
         }
-        .accessibilityLabel("Settings")
-        .accessibilityHint("Opens settings panel to adjust language and annotation options")
-        .rotation3DEffect(
-            .degrees(settingsViewModel.isExpanded ? 90 : 0),
-            axis: (x: 0, y: 1, z: 0)
-        )
+        .accessibilityLabel("Label Settings")
+        .accessibilityHint("Opens label settings panel to adjust label options")
         .frame(width: 60)
         .padding(.leading)
+        .disabled(settingsViewModel.isExpanded)
     }
     
     private var detectionToggleButton: some View {

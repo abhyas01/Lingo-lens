@@ -136,7 +136,7 @@ struct ARTranslationView: View {
         }
         .alert("Removed all labels from objects", isPresented: $showAlertAboutReset) {
             Button("Ok") {}
-            Button("Don't Warn Again", role: .destructive) {
+            Button("Don't Warn Again", role: .cancel) {
                 neverShowAlertAboutReset = true
             }
         } message: {
