@@ -37,6 +37,7 @@ struct ARTranslationView: View {
                     )
                 } else {
                     mainARView
+                        .withARErrorHandling()
                 }
             }
             .navigationTitle("Translate")

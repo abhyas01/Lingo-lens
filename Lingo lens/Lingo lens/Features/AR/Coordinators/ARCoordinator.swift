@@ -60,6 +60,17 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        print("AR session error: \(error.localizedDescription)")
+    
+        ARErrorManager.shared.showError(
+            message: "AR camera session encountered an issue. Please try again.",
+            retryAction: { [weak self] in
+                self?.arViewModel.resumeARSession()
+            }
+        )
+    }
+    
     // MARK: - Annotation Interaction
 
     /// Handles taps on AR annotations in 3D space

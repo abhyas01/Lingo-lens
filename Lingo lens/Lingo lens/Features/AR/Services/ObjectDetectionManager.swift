@@ -26,6 +26,11 @@ class ObjectDetectionManager {
             let model = try FastViTMA36F16(configuration: MLModelConfiguration()).model
             visionModel = try VNCoreMLModel(for: model)
         } catch {
+            print("Failed to load object detection model: \(error.localizedDescription)")
+            ARErrorManager.shared.showError(
+                message: "Could not load object detection model. The app may not work properly.",
+                retryAction: nil
+            )
             visionModel = nil
         }
     }
@@ -40,6 +45,12 @@ class ObjectDetectionManager {
                              completion: @escaping (String?) -> Void)
     {
         guard let visionModel = visionModel else {
+            DispatchQueue.main.async {
+                ARErrorManager.shared.showError(
+                    message: "Object detection model is not available. Please restart the app.",
+                    retryAction: nil
+                )
+            }
             completion(nil)
             return
         }
@@ -106,6 +117,11 @@ class ObjectDetectionManager {
         do {
             try handler.perform([request])
         } catch {
+            print("Vision request failed: \(error.localizedDescription)")
+            ARErrorManager.shared.showError(
+                message: "Vision processing failed: \(error.localizedDescription)",
+                retryAction: nil
+            )
             completion(nil)
         }
     }

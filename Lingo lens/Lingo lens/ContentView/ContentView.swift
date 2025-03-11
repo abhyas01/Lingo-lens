@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var translationService: TranslationService
     @StateObject private var arViewModel = ARViewModel()
 
     enum Tab {
@@ -21,7 +20,6 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             ARTranslationView(arViewModel: arViewModel)
-                .environmentObject(translationService)
                 .tabItem {
                     Label("Translate", systemImage: "camera.viewfinder")
                 }
