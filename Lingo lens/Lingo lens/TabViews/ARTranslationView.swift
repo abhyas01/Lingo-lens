@@ -154,14 +154,6 @@ struct ARTranslationView: View {
             InstructionsView()
         }
         
-        .sheet(isPresented: $settingsViewModel.showLanguageSelection) {
-            LanguageSelectionView(
-                selectedLanguage: $arViewModel.selectedLanguage,
-                isPresented: $settingsViewModel.showLanguageSelection
-            )
-            .environmentObject(translationService)
-        }
-        
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {
             if let originalText = arViewModel.selectedAnnotationText {
                 AnnotationDetailView(

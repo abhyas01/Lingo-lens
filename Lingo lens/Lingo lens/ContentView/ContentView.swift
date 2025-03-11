@@ -13,6 +13,7 @@ struct ContentView: View {
     enum Tab {
         case arTranslationView
         case savedWordsView
+        case settingsView
     }
     
     @State private var selectedTab: Tab = .arTranslationView
@@ -30,6 +31,12 @@ struct ContentView: View {
                     Label("Saved Words", systemImage: "bookmark.fill")
                 }
                 .tag(Tab.savedWordsView)
+                
+            SettingsTabView(arViewModel: arViewModel)
+                .tabItem {
+                    Label("Settings", systemImage: "gear")
+                }
+                .tag(Tab.settingsView)
         }
         .withCoreDataErrorHandling()
     }

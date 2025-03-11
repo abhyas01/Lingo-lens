@@ -13,9 +13,6 @@ class SettingsViewModel: ObservableObject {
     /// Tracks whether settings panel is expanded from bottom of screen
     @Published var isExpanded = false
     
-    /// Controls visibility of language selection modal sheet
-    @Published var showLanguageSelection = false
-    
     // MARK: - Panel Animation
 
     /// Toggles settings panel with spring animation for smooth expansion/collapse

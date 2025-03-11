@@ -30,7 +30,6 @@ struct SettingsPanel: View {
                 .padding(.bottom)
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    languageSelectionSection
                     annotationSizeSection
                     clearAnnotationsButton
                 }
@@ -41,37 +40,12 @@ struct SettingsPanel: View {
             .frame(width: 300)
             .position(
                 x: 165,
-                y: geometry.size.height - geometry.safeAreaInsets.bottom - 150
+                y: geometry.size.height - geometry.safeAreaInsets.bottom - 100
             )
             .transition(.asymmetric(
                 insertion: .opacity.combined(with: .offset(x: 0, y: 50)),
                 removal: .opacity.combined(with: .offset(x: 0, y: 50))
             ))
-        }
-    }
-    
-    private var languageSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Language")
-                .foregroundStyle(.primary)
-
-            Button(action: {
-                settingsViewModel.showLanguageSelection = true
-            }) {
-                HStack {
-                    Text(arViewModel.selectedLanguage.localizedName())
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color.accentColor.opacity(0.1))
-                .cornerRadius(8)
-            }
-            .accessibilityLabel("Select Translation Language")
-            .accessibilityValue("Current language: \(arViewModel.selectedLanguage.localizedName())")
         }
     }
     
