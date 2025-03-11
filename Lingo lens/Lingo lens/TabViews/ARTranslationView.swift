@@ -19,6 +19,8 @@ struct ARTranslationView: View {
     @State private var alreadyResumedARSession = false
     @State private var showAlertAboutReset = false
     @State private var neverShowAlertAboutReset = false
+    @State private var isViewActive = false
+
     @EnvironmentObject var translationService: TranslationService
 
     var body: some View {
@@ -58,6 +60,7 @@ struct ARTranslationView: View {
             }
         }
         .onAppear {
+            isViewActive = true
             cameraPermissionManager.checkPermission()
             if !cameraPermissionManager.showPermissionAlert {
                 DispatchQueue.main.async {
@@ -70,7 +73,7 @@ struct ARTranslationView: View {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
             case .active:
-                if !alreadyResumedARSession {
+                if isViewActive && !alreadyResumedARSession {
                     if !cameraPermissionManager.showPermissionAlert {
                         arViewModel.resetAnnotations()
                         arViewModel.resumeARSession()
@@ -86,6 +89,7 @@ struct ARTranslationView: View {
             }
         }
         .onDisappear {
+            isViewActive = false
             arViewModel.pauseARSession()
             arViewModel.resetAnnotations()
             showAlertAboutReset = neverShowAlertAboutReset ? false : true

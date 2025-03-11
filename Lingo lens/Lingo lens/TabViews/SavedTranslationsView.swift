@@ -119,7 +119,7 @@ struct SavedTranslationsView: View {
         }
         .listStyle(InsetGroupedListStyle())
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .topBarLeading) {
                 EditButton()
             }
         }

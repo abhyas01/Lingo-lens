@@ -5,13 +5,15 @@
 //  Created by Abhyas Mall on 3/9/25.
 //
 
-
 import SwiftUI
 import AVFoundation
 
 struct SavedTranslationDetailView: View {
     let translation: SavedTranslation
     @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         VStack(spacing: 24) {
@@ -69,6 +71,25 @@ struct SavedTranslationDetailView: View {
                     }
                     .padding(.horizontal)
                     
+                    VStack {
+                        Button(action: {
+                            showDeleteConfirmation = true
+                        }) {
+                            Label("Delete", systemImage: "trash")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red)
+                                .cornerRadius(12)
+                        }
+                        .accessibilityLabel("Delete translation")
+                        .accessibilityHint("Removes this translation from your saved words")
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                    }
+                    
+                    
                     if let date = translation.dateAdded {
                         Text("Saved on \(date.toMediumDateTimeString())")
                             .font(.caption)
@@ -78,6 +99,14 @@ struct SavedTranslationDetailView: View {
                 }
                 .padding(.bottom, 20)
             }
+        }
+        .alert("Delete Translation", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteTranslation()
+            }
+        } message: {
+            Text("Are you sure you want to delete this translation? This action cannot be undone.")
         }
     }
     
@@ -97,6 +126,20 @@ struct SavedTranslationDetailView: View {
         utterance.postUtteranceDelay = 0
         
         speechSynthesizer.speak(utterance)
+    }
+    
+    private func deleteTranslation() {
+        // Delete from Core Data
+        viewContext.delete(translation)
+        
+        do {
+            try viewContext.save()
+            // Dismiss the view after successful delete
+            dismiss()
+        } catch {
+            print("Error deleting translation: \(error.localizedDescription)")
+            // You could add an error alert here if desired
+        }
     }
 }
 

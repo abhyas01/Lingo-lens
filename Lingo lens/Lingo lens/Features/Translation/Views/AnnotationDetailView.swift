@@ -21,11 +21,12 @@ struct AnnotationDetailView: View {
     @State private var translatedText: String = ""
     @State private var isTranslating: Bool = false
     @State private var translationError: Bool = false
-    @State private var shouldTranslate: Bool = false
+    @State private var shouldTranslate: Bool = true
     @State private var configuration: TranslationSession.Configuration?
     @State private var showDownloadAlert: Bool = false
     @State private var showLongLoadingWarning: Bool = false
     @State private var showSavedConfirmation: Bool = false
+    @State private var isAlreadySaved: Bool = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     
     let loadingTimeout: TimeInterval = 10
@@ -94,19 +95,19 @@ struct AnnotationDetailView: View {
                                     .accessibilityLabel("Listen to pronunciation")
                                     .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.localizedName())")
                                     
-                                    Button(action: saveTranslation) {
-                                        Label(showSavedConfirmation ? "Saved" : "Save",
-                                              systemImage: showSavedConfirmation ? "checkmark" : "bookmark.fill")
+                                    Button(action: isAlreadySaved ? {} : saveTranslation) {
+                                        Label(isAlreadySaved || showSavedConfirmation ? "Saved" : "Save",
+                                              systemImage: isAlreadySaved || showSavedConfirmation ? "checkmark" : "bookmark.fill")
                                             .font(.headline)
                                             .foregroundStyle(.white)
                                             .frame(maxWidth: .infinity)
                                             .padding()
-                                            .background(showSavedConfirmation ? Color.green : Color.orange)
+                                            .background(isAlreadySaved || showSavedConfirmation ? Color.green : Color.orange)
                                             .cornerRadius(12)
                                     }
-                                    .accessibilityLabel("Save translation")
-                                    .accessibilityHint("Save this translation to your collection")
-                                    .disabled(showSavedConfirmation)
+                                    .accessibilityLabel(isAlreadySaved ? "Already saved" : "Save translation")
+                                    .accessibilityHint(isAlreadySaved ? "This translation is already saved to your collection" : "Save this translation to your collection")
+                                    .disabled(isAlreadySaved || showSavedConfirmation)
                                 }
                             }
                             .padding(.horizontal)
@@ -186,6 +187,7 @@ struct AnnotationDetailView: View {
         .onAppear {
             setupConfiguration()
             startTranslation()
+            checkIfAlreadySaved()
             
             DispatchQueue.main.asyncAfter(deadline: .now() + loadingTimeout) {
                 if isTranslating {
@@ -198,6 +200,11 @@ struct AnnotationDetailView: View {
                 showLongLoadingWarning = false
             }
         }
+        .onChange(of: translatedText) { oldValue, newValue in
+            if !newValue.isEmpty && !translationError {
+                checkIfAlreadySaved()
+            }
+        }
         .background(translationTaskBackground)
         .alert("Download Language", isPresented: $showDownloadAlert) {
             Button("Cancel", role: .cancel) { }
@@ -208,6 +215,28 @@ struct AnnotationDetailView: View {
             Text("Please go to: Settings > Apps > Translate > Downloaded Languages.\nThen download this language.")
         }
         .animation(.spring(response: 0.3), value: showSavedConfirmation)
+        .animation(.spring(response: 0.3), value: isAlreadySaved)
+    }
+    
+    private func checkIfAlreadySaved() {
+        guard !translatedText.isEmpty, !originalText.isEmpty else { return }
+        
+        let fetchRequest: NSFetchRequest<SavedTranslation> = SavedTranslation.fetchRequest()
+        fetchRequest.predicate = NSPredicate(
+            format: "originalText == %@ AND translatedText == %@ AND languageCode == %@",
+            originalText, translatedText, targetLanguage.shortName()
+        )
+        fetchRequest.fetchLimit = 1
+        
+        do {
+            let matches = try viewContext.fetch(fetchRequest)
+            DispatchQueue.main.async {
+                isAlreadySaved = !matches.isEmpty
+            }
+        } catch {
+            print("Error checking if translation is saved: \(error.localizedDescription)")
+            isAlreadySaved = false
+        }
     }
     
     private func saveTranslation() {
@@ -225,6 +254,7 @@ struct AnnotationDetailView: View {
             
             withAnimation {
                 showSavedConfirmation = true
+                isAlreadySaved = true
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -252,6 +282,7 @@ struct AnnotationDetailView: View {
     private func resetState() {
         translatedText = ""
         translationError = false
+        isAlreadySaved = false
     }
     
     private func showError(message: String) {
@@ -303,6 +334,9 @@ struct AnnotationDetailView: View {
                             try await translationService.translate(text: originalText, using: session)
                             translatedText = translationService.translatedText
                             translationError = false
+                            
+                            // Check if already saved once translation completes
+                            checkIfAlreadySaved()
                         } catch {
                             translatedText = "Translation failed. Try downloading the language."
                             translationError = true
