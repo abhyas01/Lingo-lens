@@ -32,110 +32,134 @@ struct SavedWords: View {
     
     var body: some View {
         NavigationSplitView {
-            ZStack {
-                SavedTranslationsView(
-                    query: query,
-                    sortOption: sortOption,
-                    sortOrder: sortOrder,
-                    languageFilter: selectedLanguageCode
-                )
-                .searchable(text: $query, prompt: "Search saved words")
+            contentView
+        } detail: {
+            detailPlaceholderView
+        }
+    }
+    
+    // MARK: - Extracted Views
+    
+    private var contentView: some View {
+        ZStack {
+            SavedTranslationsView(
+                query: query,
+                sortOption: sortOption,
+                sortOrder: sortOrder,
+                languageFilter: selectedLanguageCode,
+                onDeleteTranslation: {
+                    loadAvailableLanguages()
+                }
+            )
+            .searchable(text: $query, prompt: "Search saved words")
+        }
+        .navigationTitle("Saved Words")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                toolbarButtons
             }
-            .navigationTitle("Saved Words")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack {
-                        // Language Filter Menu
-                        Menu {
-                            Button {
-                                selectedLanguageCode = nil
-                            } label: {
-                                HStack {
-                                    Text("All Languages")
-                                    if selectedLanguageCode == nil {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
+        }
+        .onAppear {
+            loadAvailableLanguages()
+        }
+    }
+    
+    private var toolbarButtons: some View {
+        HStack {
+            languageFilterButton
+            sortButton
+        }
+    }
+    
+    private var languageFilterButton: some View {
+        Menu {
+            Button {
+                selectedLanguageCode = nil
+            } label: {
+                HStack {
+                    Text("All Languages")
+                    if selectedLanguageCode == nil {
+                        Spacer()
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+            
+            if !availableLanguages.isEmpty {
+                Divider()
+                
+                ForEach(availableLanguages) { language in
+                    Button {
+                        selectedLanguageCode = language.languageCode
+                    } label: {
+                        HStack {
+                            Text("\(language.flag) \(language.languageName)")
+                            if selectedLanguageCode == language.languageCode {
+                                Spacer()
+                                Image(systemName: "checkmark")
                             }
-                            
-                            if !availableLanguages.isEmpty {
-                                Divider()
-                                
-                                ForEach(availableLanguages) { language in
-                                    Button {
-                                        selectedLanguageCode = language.languageCode
-                                    } label: {
-                                        HStack {
-                                            Text("\(language.flag) \(language.languageName)")
-                                            if selectedLanguageCode == language.languageCode {
-                                                Spacer()
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
-                                .foregroundColor(.blue)
-                        }
-                        
-                        // Sort Menu
-                        Menu {
-                            Section("Sort By") {
-                                ForEach(SortOption.allCases) { option in
-                                    Button {
-                                        sortOption = option
-                                    } label: {
-                                        HStack {
-                                            Text(option.rawValue)
-                                            if sortOption == option {
-                                                Spacer()
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Section("Order") {
-                                ForEach(SortOrder.allCases) { order in
-                                    Button {
-                                        sortOrder = order
-                                    } label: {
-                                        HStack {
-                                            Text(order.rawValue)
-                                            if sortOrder == order {
-                                                Spacer()
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            Label("Sort", systemImage: "arrow.up.arrow.down")
-                                .foregroundColor(.blue)
                         }
                     }
                 }
             }
-            .onAppear {
-                loadAvailableLanguages()
-            }
-        } detail: {
-            VStack {
-                Image(systemName: "book.pages")
-                    .font(.system(size: 70))
-                    .foregroundColor(.blue.opacity(0.7))
-                    .padding(.bottom, 10)
-                
-                Text("Select a saved word to view more details.")
-                    .font(.title3.bold())
-            }
+        } label: {
+            Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
+                .foregroundColor(.blue)
         }
     }
+    
+    private var sortButton: some View {
+        Menu {
+            Section("Sort By") {
+                ForEach(SortOption.allCases) { option in
+                    Button {
+                        sortOption = option
+                    } label: {
+                        HStack {
+                            Text(option.rawValue)
+                            if sortOption == option {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Section("Order") {
+                ForEach(SortOrder.allCases) { order in
+                    Button {
+                        sortOrder = order
+                    } label: {
+                        HStack {
+                            Text(order.rawValue)
+                            if sortOrder == order {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label("Sort", systemImage: "arrow.up.arrow.down")
+                .foregroundColor(.blue)
+        }
+    }
+    
+    private var detailPlaceholderView: some View {
+        VStack {
+            Image(systemName: "book.pages")
+                .font(.system(size: 70))
+                .foregroundColor(.blue.opacity(0.7))
+                .padding(.bottom, 10)
+            
+            Text("Select a saved word to view more details.")
+                .font(.title3.bold())
+        }
+    }
+    
+    // MARK: - Helper Functions
     
     private func loadAvailableLanguages() {
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SavedTranslation.fetchRequest() as! NSFetchRequest<NSFetchRequestResult>
