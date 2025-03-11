@@ -46,6 +46,7 @@ class ObjectDetectionManager {
     {
         guard let visionModel = visionModel else {
             DispatchQueue.main.async {
+                print("Object detection model is not available.")
                 ARErrorManager.shared.showError(
                     message: "Object detection model is not available. Please restart the app.",
                     retryAction: nil
