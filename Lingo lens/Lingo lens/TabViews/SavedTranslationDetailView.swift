@@ -18,7 +18,7 @@ struct SavedTranslationDetailView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(spacing: 8) {
-                        Text(flagEmoji(for: translation.languageCode ?? ""))
+                        Text(translation.languageCode?.toFlagEmoji() ?? "🌐")
                             .font(.system(size: 70))
                         
                         Text(translation.languageName ?? "Unknown language")
@@ -70,7 +70,7 @@ struct SavedTranslationDetailView: View {
                     .padding(.horizontal)
                     
                     if let date = translation.dateAdded {
-                        Text("Saved on \(formatDateTime(date))")
+                        Text("Saved on \(date.toMediumDateTimeString())")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                             .padding(.top, 12)
@@ -97,30 +97,6 @@ struct SavedTranslationDetailView: View {
         utterance.postUtteranceDelay = 0
         
         speechSynthesizer.speak(utterance)
-    }
-    
-    private func flagEmoji(for languageCode: String) -> String {
-        guard let regionCode = languageCode.split(separator: "-").last else {
-            return "🌐"
-        }
-        
-        let base: UInt32 = 127397
-        var emoji = ""
-        
-        for scalar in regionCode.uppercased().unicodeScalars {
-            if let flagScalar = UnicodeScalar(base + scalar.value) {
-                emoji.append(Character(flagScalar))
-            }
-        }
-        
-        return emoji.isEmpty ? "🌐" : emoji
-    }
-    
-    private func formatDateTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
     }
 }
 

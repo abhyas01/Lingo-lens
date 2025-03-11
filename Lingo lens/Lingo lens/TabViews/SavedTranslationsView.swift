@@ -12,15 +12,55 @@ struct SavedTranslationsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest var savedTranslations: FetchedResults<SavedTranslation>
     
-    init(query: String) {
-        let predicate: NSPredicate? = query.isEmpty ? nil : NSPredicate(
-            format: "languageName CONTAINS[cd] %@ OR originalText CONTAINS[cd] %@ OR translatedText CONTAINS[cd] %@",
-            query, query, query
-        )
+    init(query: String, sortOption: SavedWords.SortOption = .dateCreated, sortOrder: SavedWords.SortOrder = .descending, languageFilter: String? = nil) {
+        // Start building the predicate
+        var predicates: [NSPredicate] = []
         
-        _savedTranslations = FetchRequest<SavedTranslation>(sortDescriptors: [
-            NSSortDescriptor(key: "dateAdded", ascending: false)
-        ], predicate: predicate, animation: .default)
+        // Add search query predicate if it exists
+        if !query.isEmpty {
+            let searchPredicate = NSPredicate(
+                format: "languageName CONTAINS[cd] %@ OR originalText CONTAINS[cd] %@ OR translatedText CONTAINS[cd] %@",
+                query, query, query
+            )
+            predicates.append(searchPredicate)
+        }
+        
+        // Add language filter predicate if it exists
+        if let languageCode = languageFilter {
+            let languagePredicate = NSPredicate(format: "languageCode == %@", languageCode)
+            predicates.append(languagePredicate)
+        }
+        
+        // Combine predicates if we have more than one
+        let predicate: NSPredicate? = predicates.isEmpty ? nil :
+            predicates.count == 1 ? predicates[0] : NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        
+        let isAscending = sortOrder == .ascending
+        
+        var sortDescriptors: [NSSortDescriptor] = []
+        
+        switch sortOption {
+        case .dateCreated:
+            sortDescriptors = [
+                NSSortDescriptor(key: "dateAdded", ascending: isAscending)
+            ]
+        case .originalText:
+            sortDescriptors = [
+                NSSortDescriptor(key: "originalText", ascending: isAscending),
+                NSSortDescriptor(key: "dateAdded", ascending: false)
+            ]
+        case .translatedText:
+            sortDescriptors = [
+                NSSortDescriptor(key: "translatedText", ascending: isAscending),
+                NSSortDescriptor(key: "dateAdded", ascending: false)
+            ]
+        }
+        
+        _savedTranslations = FetchRequest<SavedTranslation>(
+            sortDescriptors: sortDescriptors,
+            predicate: predicate,
+            animation: .default
+        )
     }
     
     var body: some View {
@@ -78,6 +118,11 @@ struct SavedTranslationsView: View {
             .onDelete(perform: deleteTranslations)
         }
         .listStyle(InsetGroupedListStyle())
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EditButton()
+            }
+        }
     }
     
     private func translationRow(_ translation: SavedTranslation) -> some View {
@@ -95,11 +140,11 @@ struct SavedTranslationsView: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(flagEmoji(for: translation.languageCode ?? ""))
+                Text(translation.languageCode?.toFlagEmoji() ?? "🌐")
                     .font(.title3)
                 
                 if let date = translation.dateAdded {
-                    Text(formatDate(date))
+                    Text(date.toShortDateString())
                         .font(.caption2)
                         .foregroundStyle(.secondary.opacity(0.7))
                 }
@@ -109,33 +154,11 @@ struct SavedTranslationsView: View {
         .padding(.vertical, 4)
     }
     
-    private func flagEmoji(for languageCode: String) -> String {
-        guard let regionCode = languageCode.split(separator: "-").last else {
-            return "🌐"
-        }
-        
-        let base: UInt32 = 127397
-        var emoji = ""
-        
-        for scalar in regionCode.uppercased().unicodeScalars {
-            if let flagScalar = UnicodeScalar(base + scalar.value) {
-                emoji.append(Character(flagScalar))
-            }
-        }
-        
-        return emoji.isEmpty ? "🌐" : emoji
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
-    }
-    
     private func deleteTranslations(at offsets: IndexSet) {
         withAnimation {
-            offsets.map { savedTranslations[$0] }.forEach(viewContext.delete)
+            for offset in offsets {
+                viewContext.delete(savedTranslations[offset])
+            }
             do {
                 try viewContext.save()
             } catch {
