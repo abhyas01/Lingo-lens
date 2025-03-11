@@ -47,7 +47,7 @@ struct SavedWords: View {
                 sortOption: sortOption,
                 sortOrder: sortOrder,
                 languageFilter: selectedLanguageCode,
-                onDeleteTranslation: {
+                updateFilterList: {
                     loadAvailableLanguages()
                 }
             )

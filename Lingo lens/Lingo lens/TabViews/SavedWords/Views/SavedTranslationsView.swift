@@ -11,9 +11,9 @@ import CoreData
 struct SavedTranslationsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest var savedTranslations: FetchedResults<SavedTranslation>
-    var onDeleteTranslation: (() -> Void)?
+    var updateFilterList: (() -> Void)?
 
-    init(query: String, sortOption: SavedWords.SortOption = .dateCreated, sortOrder: SavedWords.SortOrder = .descending, languageFilter: String? = nil, onDeleteTranslation: (() -> Void)? = nil) {
+    init(query: String, sortOption: SavedWords.SortOption = .dateCreated, sortOrder: SavedWords.SortOrder = .descending, languageFilter: String? = nil, updateFilterList: (() -> Void)? = nil) {
         // Start building the predicate
         var predicates: [NSPredicate] = []
         
@@ -63,7 +63,7 @@ struct SavedTranslationsView: View {
             animation: .default
         )
         
-        self.onDeleteTranslation = onDeleteTranslation
+        self.updateFilterList = updateFilterList
     }
     
     var body: some View {
@@ -73,6 +73,9 @@ struct SavedTranslationsView: View {
             } else {
                 emptyStateView
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { _ in
+            updateFilterList?()
         }
     }
     
@@ -164,7 +167,6 @@ struct SavedTranslationsView: View {
             }
             do {
                 try viewContext.save()
-                onDeleteTranslation?()
             } catch {
                 print("Error deleting translation: \(error.localizedDescription)")
             }
