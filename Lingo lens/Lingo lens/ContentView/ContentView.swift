@@ -33,6 +33,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.savedWordsView)
         }
+        .withCoreDataErrorHandling()
     }
 }
 

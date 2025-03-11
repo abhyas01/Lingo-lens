@@ -12,6 +12,10 @@ struct SavedTranslationsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest var savedTranslations: FetchedResults<SavedTranslation>
     var updateFilterList: (() -> Void)?
+    
+    @State private var isDeleting = false
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
 
     init(query: String, sortOption: SavedWords.SortOption = .dateCreated, sortOrder: SavedWords.SortOrder = .descending, languageFilter: String? = nil, updateFilterList: (() -> Void)? = nil) {
         // Start building the predicate
@@ -77,6 +81,11 @@ struct SavedTranslationsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { _ in
             updateFilterList?()
         }
+        .alert("Delete Error", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(deleteErrorMessage)
+        }
     }
     
     private var emptyStateView: some View {
@@ -129,6 +138,15 @@ struct SavedTranslationsView: View {
                 EditButton()
             }
         }
+        .overlay(
+            isDeleting ?
+                ProgressView("Deleting...")
+                    .padding()
+                    .background(Color(.systemBackground).opacity(0.7))
+                    .cornerRadius(10)
+                : nil
+        )
+        .disabled(isDeleting)
     }
     
     private func translationRow(_ translation: SavedTranslation) -> some View {
@@ -161,16 +179,33 @@ struct SavedTranslationsView: View {
     }
     
     private func deleteTranslations(at offsets: IndexSet) {
-        withAnimation {
-            for offset in offsets {
-                viewContext.delete(savedTranslations[offset])
-            }
+        isDeleting = true
+        
+        Task {
             do {
+                await MainActor.run {
+                    for offset in offsets {
+                        viewContext.delete(savedTranslations[offset])
+                    }
+                }
+                
                 try viewContext.save()
+                
+                await MainActor.run {
+                    isDeleting = false
+                }
             } catch {
-                print("Error deleting translation: \(error.localizedDescription)")
+                await MainActor.run {
+                    isDeleting = false
+                    showDeleteErrorAlert(message: "Unable to delete translation(s). Please try again later.")
+                }
             }
         }
+    }
+    
+    private func showDeleteErrorAlert(message: String) {
+        deleteErrorMessage = message
+        showDeleteError = true
     }
 }
 

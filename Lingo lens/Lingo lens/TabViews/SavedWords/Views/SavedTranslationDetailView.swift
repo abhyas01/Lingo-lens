@@ -15,6 +15,10 @@ struct SavedTranslationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteConfirmation = false
     
+    @State private var isDeleting = false
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
+    
     var body: some View {
         VStack(spacing: 24) {
             ScrollView {
@@ -72,22 +76,40 @@ struct SavedTranslationDetailView: View {
                     .padding(.horizontal)
                     
                     VStack {
-                        Button(action: {
-                            showDeleteConfirmation = true
-                        }) {
-                            Label("Delete", systemImage: "trash")
+                        if isDeleting {
+                            Button(action: {}) {
+                                HStack {
+                                    ProgressView()
+                                        .tint(.white)
+                                    Text("Deleting...")
+                                        .padding(.leading, 8)
+                                }
                                 .font(.headline)
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.red)
+                                .background(Color.red.opacity(0.8))
                                 .cornerRadius(12)
+                            }
+                            .disabled(true)
+                        } else {
+                            Button(action: {
+                                showDeleteConfirmation = true
+                            }) {
+                                Label("Delete", systemImage: "trash")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red)
+                                    .cornerRadius(12)
+                            }
+                            .accessibilityLabel("Delete translation")
+                            .accessibilityHint("Removes this translation from your saved words")
                         }
-                        .accessibilityLabel("Delete translation")
-                        .accessibilityHint("Removes this translation from your saved words")
-                        .padding(.horizontal)
-                        .padding(.top, 12)
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 12)
                     
                     
                     if let date = translation.dateAdded {
@@ -108,6 +130,13 @@ struct SavedTranslationDetailView: View {
         } message: {
             Text("Are you sure you want to delete this translation? This action cannot be undone.")
         }
+        .alert("Delete Error", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(deleteErrorMessage)
+        }
+        .disabled(isDeleting)
+        .animation(.spring(response: 0.3), value: isDeleting)
     }
     
     private func speakTranslation() {
@@ -129,16 +158,27 @@ struct SavedTranslationDetailView: View {
     }
     
     private func deleteTranslation() {
-        // Delete from Core Data
-        viewContext.delete(translation)
+        isDeleting = true
         
-        do {
-            try viewContext.save()
-            // Dismiss the view after successful delete
-            dismiss()
-        } catch {
-            print("Error deleting translation: \(error.localizedDescription)")
-            // You could add an error alert here if desired
+        Task {
+            do {
+                await MainActor.run {
+                    viewContext.delete(translation)
+                }
+                
+                try viewContext.save()
+                
+                await MainActor.run {
+                    isDeleting = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
+                    deleteErrorMessage = "Unable to delete translation. Please try again later."
+                    showDeleteError = true
+                }
+            }
         }
     }
 }

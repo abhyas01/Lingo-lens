@@ -29,6 +29,11 @@ struct AnnotationDetailView: View {
     @State private var isAlreadySaved: Bool = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     
+    @State private var isCheckingSavedStatus: Bool = false
+    @State private var isSavingTranslation: Bool = false
+    @State private var showCoreDataError: Bool = false
+    @State private var coreDataErrorMessage: String = ""
+    
     let loadingTimeout: TimeInterval = 10
 
     var body: some View {
@@ -95,19 +100,53 @@ struct AnnotationDetailView: View {
                                     .accessibilityLabel("Listen to pronunciation")
                                     .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.localizedName())")
                                     
-                                    Button(action: isAlreadySaved ? {} : saveTranslation) {
-                                        Label(isAlreadySaved || showSavedConfirmation ? "Saved" : "Save",
-                                              systemImage: isAlreadySaved || showSavedConfirmation ? "checkmark" : "bookmark.fill")
+                                    if isCheckingSavedStatus {
+                                        Button(action: {}) {
+                                            HStack {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .tint(.white)
+                                                Text("Checking")
+                                            }
                                             .font(.headline)
                                             .foregroundStyle(.white)
                                             .frame(maxWidth: .infinity)
                                             .padding()
-                                            .background(isAlreadySaved || showSavedConfirmation ? Color.green : Color.orange)
+                                            .background(Color.orange.opacity(0.8))
                                             .cornerRadius(12)
+                                        }
+                                        .disabled(true)
+                                    } else if isSavingTranslation {
+                                        Button(action: {}) {
+                                            HStack {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .tint(.white)
+                                                Text("Saving")
+                                            }
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.orange.opacity(0.8))
+                                            .cornerRadius(12)
+                                        }
+                                        .disabled(true)
+                                    } else {
+                                        Button(action: isAlreadySaved ? {} : saveTranslation) {
+                                            Label(isAlreadySaved || showSavedConfirmation ? "Saved" : "Save",
+                                                  systemImage: isAlreadySaved || showSavedConfirmation ? "checkmark" : "bookmark.fill")
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                                .frame(maxWidth: .infinity)
+                                                .padding()
+                                                .background(isAlreadySaved || showSavedConfirmation ? Color.green : Color.orange)
+                                                .cornerRadius(12)
+                                        }
+                                        .accessibilityLabel(isAlreadySaved ? "Already saved" : "Save translation")
+                                        .accessibilityHint(isAlreadySaved ? "This translation is already saved to your collection" : "Save this translation to your collection")
+                                        .disabled(isAlreadySaved || showSavedConfirmation)
                                     }
-                                    .accessibilityLabel(isAlreadySaved ? "Already saved" : "Save translation")
-                                    .accessibilityHint(isAlreadySaved ? "This translation is already saved to your collection" : "Save this translation to your collection")
-                                    .disabled(isAlreadySaved || showSavedConfirmation)
                                 }
                             }
                             .padding(.horizontal)
@@ -214,12 +253,21 @@ struct AnnotationDetailView: View {
         } message: {
             Text("Please go to: Settings > Apps > Translate > Downloaded Languages.\nThen download this language.")
         }
+        .alert("Storage Error", isPresented: $showCoreDataError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(coreDataErrorMessage)
+        }
         .animation(.spring(response: 0.3), value: showSavedConfirmation)
         .animation(.spring(response: 0.3), value: isAlreadySaved)
+        .animation(.spring(response: 0.3), value: isCheckingSavedStatus)
+        .animation(.spring(response: 0.3), value: isSavingTranslation)
     }
     
     private func checkIfAlreadySaved() {
         guard !translatedText.isEmpty, !originalText.isEmpty else { return }
+        
+        isCheckingSavedStatus = true
         
         let fetchRequest: NSFetchRequest<SavedTranslation> = SavedTranslation.fetchRequest()
         fetchRequest.predicate = NSPredicate(
@@ -228,43 +276,67 @@ struct AnnotationDetailView: View {
         )
         fetchRequest.fetchLimit = 1
         
-        do {
-            let matches = try viewContext.fetch(fetchRequest)
-            DispatchQueue.main.async {
-                isAlreadySaved = !matches.isEmpty
+        // Use background task for database operation
+        Task {
+            do {
+                let matches = try viewContext.fetch(fetchRequest)
+                
+                await MainActor.run {
+                    isAlreadySaved = !matches.isEmpty
+                    isCheckingSavedStatus = false
+                }
+            } catch {
+                await MainActor.run {
+                    isCheckingSavedStatus = false
+                    showCoreDataErrorAlert(message: "Unable to check if this translation is already saved. Please try again.")
+                }
             }
-        } catch {
-            print("Error checking if translation is saved: \(error.localizedDescription)")
-            isAlreadySaved = false
         }
     }
     
     private func saveTranslation() {
-        let newTranslation = SavedTranslation(context: viewContext)
+        isSavingTranslation = true
         
-        newTranslation.id = UUID()
-        newTranslation.originalText = originalText
-        newTranslation.translatedText = translatedText
-        newTranslation.languageCode = targetLanguage.shortName()
-        newTranslation.languageName = targetLanguage.localizedName()
-        newTranslation.dateAdded = Date()
-        
-        do {
-            try viewContext.save()
-            
-            withAnimation {
-                showSavedConfirmation = true
-                isAlreadySaved = true
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation {
-                    showSavedConfirmation = false
+        Task {
+            do {
+                await MainActor.run {
+                    let newTranslation = SavedTranslation(context: viewContext)
+                    
+                    newTranslation.id = UUID()
+                    newTranslation.originalText = originalText
+                    newTranslation.translatedText = translatedText
+                    newTranslation.languageCode = targetLanguage.shortName()
+                    newTranslation.languageName = targetLanguage.localizedName()
+                    newTranslation.dateAdded = Date()
+                }
+                
+                try viewContext.save()
+                
+                await MainActor.run {
+                    isSavingTranslation = false
+                    withAnimation {
+                        showSavedConfirmation = true
+                        isAlreadySaved = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        withAnimation {
+                            showSavedConfirmation = false
+                        }
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isSavingTranslation = false
+                    showCoreDataErrorAlert(message: "Unable to save translation. Please try again later.")
                 }
             }
-        } catch {
-            print("Error saving translation: \(error.localizedDescription)")
         }
+    }
+    
+    private func showCoreDataErrorAlert(message: String) {
+        coreDataErrorMessage = message
+        showCoreDataError = true
     }
     
     private func startTranslation() {
@@ -283,6 +355,8 @@ struct AnnotationDetailView: View {
         translatedText = ""
         translationError = false
         isAlreadySaved = false
+        isCheckingSavedStatus = false
+        isSavingTranslation = false
     }
     
     private func showError(message: String) {

@@ -28,6 +28,11 @@ struct SavedWords: View {
     @State private var sortOrder: SortOrder = .descending
     @State private var selectedLanguageCode: String? = nil
     @State private var availableLanguages: [LanguageFilter] = []
+    
+    @State private var isLoadingLanguages: Bool = false
+    @State private var showLanguageLoadError: Bool = false
+    @State private var languageLoadErrorMessage: String = ""
+    
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
@@ -35,6 +40,14 @@ struct SavedWords: View {
             contentView
         } detail: {
             detailPlaceholderView
+        }
+        .alert("Error Loading Languages", isPresented: $showLanguageLoadError) {
+            Button("OK", role: .cancel) { }
+            Button("Try Again") {
+                loadAvailableLanguages()
+            }
+        } message: {
+            Text(languageLoadErrorMessage)
         }
     }
     
@@ -52,6 +65,13 @@ struct SavedWords: View {
                 }
             )
             .searchable(text: $query, prompt: "Search saved words")
+            
+            if isLoadingLanguages {
+                ProgressView("Loading filters...")
+                    .padding()
+                    .background(Color(.systemBackground).opacity(0.7))
+                    .cornerRadius(10)
+            }
         }
         .navigationTitle("Saved Words")
         .toolbar {
@@ -106,6 +126,7 @@ struct SavedWords: View {
             Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
                 .foregroundColor(.blue)
         }
+        .disabled(isLoadingLanguages)
     }
     
     private var sortButton: some View {
@@ -162,33 +183,52 @@ struct SavedWords: View {
     // MARK: - Helper Functions
     
     private func loadAvailableLanguages() {
-        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SavedTranslation.fetchRequest() as! NSFetchRequest<NSFetchRequestResult>
+        isLoadingLanguages = true
         
-        fetchRequest.propertiesToFetch = ["languageCode", "languageName"]
-        fetchRequest.resultType = .dictionaryResultType
-        fetchRequest.returnsDistinctResults = true
-        
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "languageName", ascending: true)]
-        
-        do {
-            let results = try viewContext.fetch(fetchRequest) as? [[String: Any]] ?? []
-            
-            var languages = [LanguageFilter]()
-            
-            for result in results {
-                if let code = result["languageCode"] as? String,
-                   let name = result["languageName"] as? String {
-                    let filter = LanguageFilter(
-                        languageCode: code,
-                        languageName: name
-                    )
-                    languages.append(filter)
+        Task {
+            do {
+                let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SavedTranslation.fetchRequest() as! NSFetchRequest<NSFetchRequestResult>
+                
+                fetchRequest.propertiesToFetch = ["languageCode", "languageName"]
+                fetchRequest.resultType = .dictionaryResultType
+                fetchRequest.returnsDistinctResults = true
+                
+                fetchRequest.sortDescriptors = [NSSortDescriptor(key: "languageName", ascending: true)]
+                
+                let results = try await viewContext.perform {
+                    try fetchRequest.execute() as? [[String: Any]] ?? []
+                }
+                
+                var languages = [LanguageFilter]()
+                
+                for result in results {
+                    if let code = result["languageCode"] as? String,
+                       let name = result["languageName"] as? String {
+                        let filter = LanguageFilter(
+                            languageCode: code,
+                            languageName: name
+                        )
+                        languages.append(filter)
+                    }
+                }
+                
+                await MainActor.run {
+                    availableLanguages = languages
+                    isLoadingLanguages = false
+                }
+                
+            } catch {
+                await MainActor.run {
+                    isLoadingLanguages = false
+                    showLanguageLoadErrorAlert(message: "Unable to load language filters. Please try again.")
                 }
             }
-            availableLanguages = languages
-        } catch {
-            print("Error fetching languages: \(error.localizedDescription)")
         }
+    }
+    
+    private func showLanguageLoadErrorAlert(message: String) {
+        languageLoadErrorMessage = message
+        showLanguageLoadError = true
     }
 }
 
