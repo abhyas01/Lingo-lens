@@ -276,7 +276,6 @@ struct AnnotationDetailView: View {
         )
         fetchRequest.fetchLimit = 1
         
-        // Use background task for database operation
         Task {
             do {
                 let matches = try viewContext.fetch(fetchRequest)
@@ -408,8 +407,7 @@ struct AnnotationDetailView: View {
                             try await translationService.translate(text: originalText, using: session)
                             translatedText = translationService.translatedText
                             translationError = false
-                            
-                            // Check if already saved once translation completes
+                        
                             checkIfAlreadySaved()
                         } catch {
                             translatedText = "Translation failed. Try downloading the language."

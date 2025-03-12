@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+import Translation
 
 struct LanguageSelectionView: View {
     @EnvironmentObject var translationService: TranslationService
     @Binding var selectedLanguage: AvailableLanguage
     @Binding var isPresented: Bool
     @State private var tempSelectedLanguage: AvailableLanguage
+    
+    @State private var isDownloading = false
+    @State private var showDownloadError = false
+    @State private var downloadConfig: TranslationSession.Configuration? = nil
     
     init(selectedLanguage: Binding<AvailableLanguage>, isPresented: Binding<Bool>) {
         self._selectedLanguage = selectedLanguage
@@ -60,8 +65,54 @@ struct LanguageSelectionView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        isDownloading = true
+                        downloadConfig = TranslationSession.Configuration(
+                            source: translationService.sourceLanguage,
+                            target: tempSelectedLanguage.locale
+                        )
+                    }
+                }
+            }
+            .overlay(
+                isDownloading ?
+                    VStack {
+                        ProgressView("Preparing language...")
+                        Text("This might take a moment")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground).opacity(0.9))
+                    .cornerRadius(10)
+                    : nil
+            )
+            .disabled(isDownloading)
+            .alert("Download Error", isPresented: $showDownloadError) {
+                Button("OK") {
+                    selectedLanguage = tempSelectedLanguage
+                    isPresented = false
+                }
+            } message: {
+                Text("Unable to download language data. Translations may not work properly.")
+            }
+            .translationTask(downloadConfig) { session in
+                guard isDownloading else { return }
+                
+                do {
+                    try await session.prepareTranslation()
+                
+                    await MainActor.run {
+                        isDownloading = false
                         selectedLanguage = tempSelectedLanguage
                         isPresented = false
+                        downloadConfig = nil
+                    }
+                } catch {
+                    await MainActor.run {
+                        isDownloading = false
+                        showDownloadError = true
+                        downloadConfig = nil
                     }
                 }
             }

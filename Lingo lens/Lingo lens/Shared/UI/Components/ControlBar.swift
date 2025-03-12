@@ -10,6 +10,10 @@ import SwiftUI
 struct ControlBar: View {
     @ObservedObject var arViewModel: ARViewModel
     @ObservedObject var settingsViewModel: SettingsViewModel
+    @EnvironmentObject private var translationService: TranslationService
+    
+    @State private var isCheckingLanguage = false
+    @State private var showLanguageDownloadPrompt = false
     
     var body: some View {
         HStack {
@@ -18,6 +22,15 @@ struct ControlBar: View {
             detectionToggleButton
             Spacer()
             addAnnotationButton
+        }
+        .sheet(isPresented: $showLanguageDownloadPrompt) {
+            LanguageDownloadView(
+                language: arViewModel.selectedLanguage,
+                isPresented: $showLanguageDownloadPrompt,
+                onDownloadComplete: {
+                    startDetection()
+                }
+            )
         }
     }
     
@@ -48,36 +61,43 @@ struct ControlBar: View {
     
     private var detectionToggleButton: some View {
         Button(action: {
-            if !arViewModel.isDetectionActive {
-                if let sceneView = arViewModel.sceneView {
-                    let boxSize: CGFloat = 200
-                    arViewModel.adjustableROI = CGRect(
-                        x: (sceneView.bounds.width - boxSize) / 2,
-                        y: (sceneView.bounds.height - boxSize) / 2,
-                        width: boxSize,
-                        height: boxSize
-                    )
-                }
-            }
-            arViewModel.isDetectionActive.toggle()
-            if !arViewModel.isDetectionActive {
+            if arViewModel.isDetectionActive {
+                arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
+            } else {
+                checkLanguageAndStartDetection()
             }
         }) {
-            Text(arViewModel.isDetectionActive ?
-                 "Stop Detection" : "Start Detection")
-                .font(.system(size: 16, weight: .semibold))
+            if isCheckingLanguage {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .tint(.white)
+                    Text("Checking")
+                        .font(.system(size: 16, weight: .semibold))
+                }
                 .foregroundColor(.white)
                 .padding(12)
                 .frame(minWidth: 140)
-                .background(arViewModel.isDetectionActive ?
-                          Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                .background(Color.orange.opacity(0.8))
                 .cornerRadius(12)
+            } else {
+                Text(arViewModel.isDetectionActive ?
+                     "Stop Detection" : "Start Detection")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(12)
+                    .frame(minWidth: 140)
+                    .background(arViewModel.isDetectionActive ?
+                              Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                    .cornerRadius(12)
+            }
         }
         .accessibilityLabel(arViewModel.isDetectionActive ? "Stop Object Detection" : "Start Object Detection")
         .accessibilityHint(arViewModel.isDetectionActive ?
             "Stop detecting objects in camera view" :
             "Begin detecting objects in camera view")
+        .disabled(isCheckingLanguage)
     }
     
     private var addAnnotationButton: some View {
@@ -100,6 +120,39 @@ struct ControlBar: View {
         .disabled(arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive)
         .frame(width: 60)
         .padding(.trailing)
+    }
+    
+    private func checkLanguageAndStartDetection() {
+        isCheckingLanguage = true
+        
+        Task {
+            let isDownloaded = await translationService.isLanguageDownloaded(
+                language: arViewModel.selectedLanguage
+            )
+            
+            await MainActor.run {
+                isCheckingLanguage = false
+                
+                if isDownloaded {
+                    startDetection()
+                } else {
+                    showLanguageDownloadPrompt = true
+                }
+            }
+        }
+    }
+    
+    private func startDetection() {
+        if let sceneView = arViewModel.sceneView {
+            let boxSize: CGFloat = 200
+            arViewModel.adjustableROI = CGRect(
+                x: (sceneView.bounds.width - boxSize) / 2,
+                y: (sceneView.bounds.height - boxSize) / 2,
+                width: boxSize,
+                height: boxSize
+            )
+        }
+        arViewModel.isDetectionActive = true
     }
 }
 

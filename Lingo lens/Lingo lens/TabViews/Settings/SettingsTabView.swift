@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct SettingsTabView: View {
-    @EnvironmentObject var translationService: TranslationService
     @ObservedObject var arViewModel: ARViewModel
     @State private var showLanguageSelection = false
     
@@ -55,7 +54,6 @@ struct SettingsTabView: View {
                     selectedLanguage: $arViewModel.selectedLanguage,
                     isPresented: $showLanguageSelection
                 )
-                .environmentObject(translationService)
             }
         }
     }
@@ -75,5 +73,5 @@ struct SettingsTabView: View {
     ]
     
     return SettingsTabView(arViewModel: arViewModel)
-        .environmentObject(translationService)
+            .environmentObject(translationService)
 }

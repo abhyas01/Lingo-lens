@@ -28,6 +28,23 @@ class TranslationService: ObservableObject {
     
     // MARK: - Language Management
 
+    func isLanguageDownloaded(language: AvailableLanguage) async -> Bool {
+        let availability = LanguageAvailability()
+        let status = await availability.status(
+            from: sourceLanguage,
+            to: language.locale
+        )
+        
+        switch status {
+        case .installed:
+            return true
+        case .supported, .unsupported:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+    
     /// Fetches available languages from iOS translation system
     func getSupportedLanguages() {
         Task { @MainActor in
