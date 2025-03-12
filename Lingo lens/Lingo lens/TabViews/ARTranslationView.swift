@@ -125,7 +125,6 @@ struct ARTranslationView: View {
                         }
 
                         let margin: CGFloat = 16
-                        let minBoxSize: CGFloat = 100
 
                         let currentROI = arViewModel.adjustableROI
                         let relativeX = (currentROI.midX - margin) / (oldContainerSize.width - 2 * margin)

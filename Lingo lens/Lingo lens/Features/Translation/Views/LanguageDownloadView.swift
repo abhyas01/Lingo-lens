@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Translation
+import Combine
 
 struct LanguageDownloadView: View {
     let language: AvailableLanguage
@@ -20,6 +21,8 @@ struct LanguageDownloadView: View {
     @State private var downloadComplete = false
     @State private var downloadFailed = false
     @State private var isVerifyingDownload = false
+    @State private var periodicCheckTimer: Timer?
+    @State private var isPerformingAction = false
     
     init(language: AvailableLanguage, isPresented: Binding<Bool>, onDownloadComplete: @escaping () -> Void) {
         self.language = language
@@ -32,7 +35,10 @@ struct LanguageDownloadView: View {
             VStack(spacing: 24) {
                 HStack {
                     Spacer()
-                    Button(action: { isPresented = false }) {
+                    Button(action: {
+                        stopPeriodicCheck()
+                        isPresented = false
+                    }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .foregroundStyle(.gray)
@@ -65,16 +71,33 @@ struct LanguageDownloadView: View {
                             .font(.headline)
                             .foregroundColor(.green)
                         
-                        Button("Continue") {
-                            isPresented = false
-                            onDownloadComplete()
+                        Button(action: {
+                            isPerformingAction = true
+                            stopPeriodicCheck()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                isPresented = false
+                                onDownloadComplete()
+                            }
+                        }) {
+                            HStack {
+                                Text("Continue")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                
+                                if isPerformingAction {
+                                    ProgressView()
+                                        .tint(.white)
+                                        .scaleEffect(0.8)
+                                        .padding(.leading, 4)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(12)
                         }
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                        .disabled(isPerformingAction)
+                        .contentShape(Rectangle())
                         .padding(.horizontal)
                         .padding(.top, 20)
                     }
@@ -107,7 +130,6 @@ struct LanguageDownloadView: View {
                         
                         Button("Open Settings") {
                             openAppSettings()
-                            isPresented = false
                         }
                         .font(.headline)
                         .foregroundStyle(.white)
@@ -151,7 +173,6 @@ struct LanguageDownloadView: View {
                         
                         Button(action: {
                             openAppSettings()
-                            isPresented = false
                         }) {
                             Text("Go to settings")
                                 .multilineTextAlignment(.center)
@@ -178,7 +199,6 @@ struct LanguageDownloadView: View {
                         
                         Button("Open Settings to Download") {
                             openAppSettings()
-                            isPresented = false
                         }
                         .font(.headline)
                         .foregroundStyle(.blue)
@@ -228,6 +248,12 @@ struct LanguageDownloadView: View {
                     }
                 }
             }
+            .onAppear {
+                startPeriodicCheck()
+            }
+            .onDisappear {
+                stopPeriodicCheck()
+            }
         }
     }
     
@@ -262,6 +288,40 @@ struct LanguageDownloadView: View {
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
         if UIApplication.shared.canOpenURL(settingsUrl) {
             UIApplication.shared.open(settingsUrl)
+        }
+    }
+    
+    
+
+// MARK: - Periodic Check Methods
+    
+    private func startPeriodicCheck() {
+        stopPeriodicCheck()
+        
+        periodicCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+
+            if !downloadComplete && !isVerifyingDownload {
+                checkLanguageDownloadStatus()
+            }
+        }
+    }
+    
+    private func stopPeriodicCheck() {
+        periodicCheckTimer?.invalidate()
+        periodicCheckTimer = nil
+    }
+    
+    private func checkLanguageDownloadStatus() {
+        Task {
+            let isDownloaded = await translationService.isLanguageDownloaded(language: language)
+            
+            if isDownloaded {
+                await MainActor.run {
+                    downloadComplete = true
+                    downloadFailed = false
+                    configuration = nil
+                }
+            }
         }
     }
 }
