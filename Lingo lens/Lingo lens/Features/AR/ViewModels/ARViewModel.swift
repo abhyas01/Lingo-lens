@@ -27,6 +27,7 @@ class ARViewModel: ObservableObject {
     @Published var selectedAnnotationText: String?
     @Published var isShowingAnnotationDetail: Bool = false
     @Published var showPlacementError = false
+    @Published var isAddingAnnotation = false
     @Published var placementErrorMessage = "Could not detect a plane to anchor annotation. Try again changing angle or moving around."
     @Published var annotationScale: CGFloat = 1.0 {
         didSet {
@@ -78,6 +79,8 @@ class ARViewModel: ObservableObject {
     
     /// Adds a new annotation at current ROI center if we can find a plane there
     func addAnnotation() {
+        guard !isAddingAnnotation else { return }
+        
         guard !detectedObjectName.isEmpty,
               !detectedObjectName.trimmingCharacters(in: .whitespaces).isEmpty else {
             return
@@ -86,14 +89,18 @@ class ARViewModel: ObservableObject {
         guard let sceneView = sceneView,
               sceneView.session.currentFrame != nil else { return }
         
-        // Try to place annotation in center of bounding box
+        isAddingAnnotation = true
+        
         let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
         
         if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
             let results = sceneView.session.raycast(query)
             if let result = results.first {
                 DispatchQueue.main.async {
-                    guard !self.detectedObjectName.isEmpty else { return }
+                    guard !self.detectedObjectName.isEmpty else {
+                        self.isAddingAnnotation = false
+                        return
+                    }
                     
                     let annotationNode = self.createCapsuleAnnotation(with: self.detectedObjectName)
                     annotationNode.simdTransform = result.worldTransform
@@ -103,16 +110,24 @@ class ARViewModel: ObservableObject {
                                                result.worldTransform.columns.3.z)
                     self.annotationNodes.append((annotationNode, self.detectedObjectName, worldPos))
                     sceneView.scene.rootNode.addChildNode(annotationNode)
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.isAddingAnnotation = false
+                    }
                 }
             } else {
-                // No plane found - show error briefly
                 DispatchQueue.main.async {
                     self.showPlacementError = true
+                    self.isAddingAnnotation = false
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         self.showPlacementError = false
                     }
                 }
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.isAddingAnnotation = false
             }
         }
     }

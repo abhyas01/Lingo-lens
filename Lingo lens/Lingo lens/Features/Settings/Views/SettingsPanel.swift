@@ -55,7 +55,7 @@ struct SettingsPanel: View {
                 .foregroundStyle(.primary)
 
             Slider(value: $arViewModel.annotationScale,
-                   in: 0.2...3.5,
+                   in: 0.2...5.0,
                    step: 0.1)
             .accessibilityLabel("Label Size")
             .accessibilityValue("\(Int(arViewModel.annotationScale * 100))% of default size")

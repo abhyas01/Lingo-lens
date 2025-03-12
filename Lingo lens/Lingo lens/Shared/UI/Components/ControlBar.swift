@@ -101,25 +101,52 @@ struct ControlBar: View {
     }
     
     private var addAnnotationButton: some View {
-        Button(action: {
-            guard !arViewModel.detectedObjectName.isEmpty else { return }
-            arViewModel.addAnnotation()
-        }) {
-            Image(systemName: "plus.circle.fill")
-                .resizable()
-                .frame(width: 60, height: 60)
-                .foregroundColor(
-                    arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive ?
-                    Color.gray.opacity(0.25) : Color.blue
-                )
+        ZStack {
+            if arViewModel.isAddingAnnotation {
+                ZStack {
+                    Circle()
+                        .fill(Color.black.opacity(0.7))
+                        .frame(width: 60, height: 60)
+                    
+                    ProgressView()
+                        .scaleEffect(1.0)
+                        .tint(.white)
+                }
                 .padding()
+            } else {
+                Button(action: {
+                    guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.isAddingAnnotation else { return }
+                    arViewModel.addAnnotation()
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .resizable()
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(
+                            determineAddButtonColor()
+                        )
+                        .padding()
+                }
+                .disabled(arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive)
+            }
         }
-        .accessibilityLabel("Add Annotation")
-        .accessibilityHint("Adds a translation annotation for the detected object")
-        .accessibilityValue(arViewModel.detectedObjectName.isEmpty ? "No object detected" : "Ready to annotate \(arViewModel.detectedObjectName)")
-        .disabled(arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive)
         .frame(width: 60)
         .padding(.trailing)
+        .accessibilityLabel(arViewModel.isAddingAnnotation ? "Adding Annotation" : "Add Annotation")
+        .accessibilityHint(arViewModel.detectedObjectName.isEmpty ? "No object detected" :
+                          arViewModel.isAddingAnnotation ? "Adding annotation in progress" :
+                          "Adds a translation annotation for the detected object")
+        .accessibilityValue(arViewModel.detectedObjectName.isEmpty ? "No object detected" :
+                           "Ready to annotate \(arViewModel.detectedObjectName)")
+    }
+
+    private func determineAddButtonColor() -> Color {
+        if arViewModel.isAddingAnnotation {
+            return Color.gray
+        } else if arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive {
+            return Color.gray.opacity(0.25)
+        } else {
+            return Color.blue
+        }
     }
     
     private func checkLanguageAndStartDetection() {
