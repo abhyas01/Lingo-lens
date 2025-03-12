@@ -1,8 +1,8 @@
 //
-//  ARView.swift
+//  ARTranslationView.swift
 //  Lingo lens
 //
-//  Created by Abhyas Mall on 2/18/25.
+//  (Updated to handle orientation changes better)
 //
 
 import SwiftUI
@@ -20,6 +20,8 @@ struct ARTranslationView: View {
     @State private var showAlertAboutReset = false
     @State private var neverShowAlertAboutReset = false
     @State private var isViewActive = false
+    
+    @State private var currentOrientation = UIDevice.current.orientation
 
     @EnvironmentObject var translationService: TranslationService
 
@@ -70,6 +72,8 @@ struct ARTranslationView: View {
                     alreadyResumedARSession = true
                 }
             }
+            
+            setupOrientationObserver()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
@@ -94,6 +98,28 @@ struct ARTranslationView: View {
             arViewModel.pauseARSession()
             arViewModel.resetAnnotations()
             showAlertAboutReset = neverShowAlertAboutReset ? false : true
+            
+            NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+        }
+    }
+    
+    private func setupOrientationObserver() {
+        NotificationCenter.default.addObserver(
+            forName: UIDevice.orientationDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [self] _ in
+            let newOrientation = UIDevice.current.orientation
+            if newOrientation.isValidInterfaceOrientation && newOrientation != currentOrientation {
+                currentOrientation = newOrientation
+
+                if let sceneView = arViewModel.sceneView {
+                    DispatchQueue.main.async {
+                        let adjustedROI = arViewModel.adjustableROI
+                        arViewModel.adjustableROI = adjustedROI
+                    }
+                }
+            }
         }
     }
     
@@ -182,9 +208,15 @@ struct ARTranslationView: View {
                 }
                 
                 .onChange(of: geo.size) { oldSize, newSize in
-                    guard newSize != previousSize else { return }
-                    arViewModel.adjustableROI = arViewModel.adjustableROI
-                        .resizedAndClamped(from: previousSize, to: newSize)
+                    guard abs(oldSize.width - newSize.width) > 1 || abs(oldSize.height - newSize.height) > 1 else {
+                        return
+                    }
+                    
+                    let adjustedROI = arViewModel.adjustableROI
+                        .resizedAndClamped(from: oldSize, to: newSize)
+                    
+                    arViewModel.adjustableROI = adjustedROI
+                    
                     previousSize = newSize
                 }
             
@@ -193,6 +225,29 @@ struct ARTranslationView: View {
                 containerSize: geo.size
             )
         }
+    }
+    
+    private func clampROI(_ rect: CGRect, in containerSize: CGSize) -> CGRect {
+        let margin: CGFloat = 16
+        let minBoxSize: CGFloat = 100
+        
+        var newRect = rect
+        
+        newRect.size.width = max(newRect.size.width, minBoxSize)
+        newRect.size.height = max(newRect.size.height, minBoxSize)
+        
+        newRect.origin.x = max(margin, newRect.origin.x)
+        newRect.origin.y = max(margin, newRect.origin.y)
+        
+        if newRect.maxX > containerSize.width - margin {
+            newRect.origin.x = containerSize.width - margin - newRect.size.width
+        }
+        
+        if newRect.maxY > containerSize.height - margin {
+            newRect.origin.y = containerSize.height - margin - newRect.size.height
+        }
+        
+        return newRect
     }
 }
 
