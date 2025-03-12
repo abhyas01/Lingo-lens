@@ -16,7 +16,8 @@ struct AdjustableBoundingBox: View {
     @State private var initialHandleROI: CGRect? = nil
     
     /// Min space between box edge and screen edge
-    private let margin: CGFloat = 4
+    private let margin: CGFloat = 16
+    private let minBoxSize: CGFloat = 100
     
     /// Positions for middle drag handles on each edge
     private enum EdgePosition: String {
@@ -181,48 +182,95 @@ struct AdjustableBoundingBox: View {
                             initialHandleROI = roi
                         }
                         let initial = initialHandleROI!
-                        var newROI = roi
+                        var newROI = initial // Start with initial ROI for each change
                         
                         switch position {
                         case .topLeft:
-                            let deltaX = value.translation.width
-                            let deltaY = value.translation.height
-                            let effectiveDeltaX: CGFloat = deltaX > 0 ? min(deltaX, initial.width - 100) : deltaX
-                            let effectiveDeltaY: CGFloat = deltaY > 0 ? min(deltaY, initial.height - 100) : deltaY
-                            newROI.origin.x = initial.origin.x + effectiveDeltaX
-                            newROI.origin.y = initial.origin.y + effectiveDeltaY
-                            newROI.size.width = initial.width - effectiveDeltaX
-                            newROI.size.height = initial.height - effectiveDeltaY
+                            let maxDeltaX = initial.width - minBoxSize
+                            let maxDeltaY = initial.height - minBoxSize
+                            
+                            // Calculate proposed deltas
+                            var deltaX = min(value.translation.width, maxDeltaX)
+                            var deltaY = min(value.translation.height, maxDeltaY)
+                            
+                            // Apply margin constraints
+                            if initial.origin.x + deltaX < margin {
+                                deltaX = margin - initial.origin.x
+                            }
+                            if initial.origin.y + deltaY < margin {
+                                deltaY = margin - initial.origin.y
+                            }
+                            
+                            newROI.origin.x = initial.origin.x + deltaX
+                            newROI.origin.y = initial.origin.y + deltaY
+                            newROI.size.width = initial.width - deltaX
+                            newROI.size.height = initial.height - deltaY
                             
                         case .topRight:
-                            let deltaX = value.translation.width
-                            let deltaY = value.translation.height
-                            let effectiveDeltaX: CGFloat = deltaX < 0 ? max(deltaX, 100 - initial.width) : deltaX
-                            let effectiveDeltaY: CGFloat = deltaY > 0 ? min(deltaY, initial.height - 100) : deltaY
-                            newROI.origin.y = initial.origin.y + effectiveDeltaY
-                            newROI.size.width = initial.width + effectiveDeltaX
-                            newROI.size.height = initial.height - effectiveDeltaY
+                            let maxNegativeDeltaX = minBoxSize - initial.width
+                            let maxDeltaY = initial.height - minBoxSize
+                            
+                            // Calculate proposed deltas
+                            var deltaX = max(value.translation.width, maxNegativeDeltaX)
+                            var deltaY = min(value.translation.height, maxDeltaY)
+                            
+                            // Apply margin constraints
+                            if initial.origin.x + initial.width + deltaX > containerSize.width - margin {
+                                deltaX = containerSize.width - margin - (initial.origin.x + initial.width)
+                            }
+                            if initial.origin.y + deltaY < margin {
+                                deltaY = margin - initial.origin.y
+                            }
+                            
+                            newROI.origin.y = initial.origin.y + deltaY
+                            newROI.size.width = initial.width + deltaX
+                            newROI.size.height = initial.height - deltaY
                             
                         case .bottomLeft:
-                            let deltaX = value.translation.width
-                            let deltaY = value.translation.height
-                            let effectiveDeltaX: CGFloat = deltaX > 0 ? min(deltaX, initial.width - 100) : deltaX
-                            let effectiveDeltaY: CGFloat = deltaY < 0 ? max(deltaY, 100 - initial.height) : deltaY
-                            newROI.origin.x = initial.origin.x + effectiveDeltaX
-                            newROI.size.width = initial.width - effectiveDeltaX
-                            newROI.size.height = initial.height + effectiveDeltaY
+                            let maxDeltaX = initial.width - minBoxSize
+                            let maxNegativeDeltaY = minBoxSize - initial.height
+                            
+                            // Calculate proposed deltas
+                            var deltaX = min(value.translation.width, maxDeltaX)
+                            var deltaY = max(value.translation.height, maxNegativeDeltaY)
+                            
+                            // Apply margin constraints
+                            if initial.origin.x + deltaX < margin {
+                                deltaX = margin - initial.origin.x
+                            }
+                            if initial.origin.y + initial.height + deltaY > containerSize.height - margin {
+                                deltaY = containerSize.height - margin - (initial.origin.y + initial.height)
+                            }
+                            
+                            newROI.origin.x = initial.origin.x + deltaX
+                            newROI.size.width = initial.width - deltaX
+                            newROI.size.height = initial.height + deltaY
                             
                         case .bottomRight:
-                            let deltaX = value.translation.width
-                            let deltaY = value.translation.height
-                            let effectiveDeltaX: CGFloat = deltaX < 0 ? max(deltaX, 100 - initial.width) : deltaX
-                            let effectiveDeltaY: CGFloat = deltaY < 0 ? max(deltaY, 100 - initial.height) : deltaY
-                            newROI.size.width = initial.width + effectiveDeltaX
-                            newROI.size.height = initial.height + effectiveDeltaY
+                            let maxNegativeDeltaX = minBoxSize - initial.width
+                            let maxNegativeDeltaY = minBoxSize - initial.height
+                            
+                            // Calculate proposed deltas
+                            var deltaX = max(value.translation.width, maxNegativeDeltaX)
+                            var deltaY = max(value.translation.height, maxNegativeDeltaY)
+                            
+                            // Apply margin constraints
+                            if initial.origin.x + initial.width + deltaX > containerSize.width - margin {
+                                deltaX = containerSize.width - margin - (initial.origin.x + initial.width)
+                            }
+                            if initial.origin.y + initial.height + deltaY > containerSize.height - margin {
+                                deltaY = containerSize.height - margin - (initial.origin.y + initial.height)
+                            }
+                            
+                            newROI.size.width = initial.width + deltaX
+                            newROI.size.height = initial.height + deltaY
                         }
+                        
+                        // Apply changes to the binding
                         roi = newROI
                     }
                     .onEnded { _ in
+                        // Final cleanup to ensure constraints are met
                         roi = clampROI(roi)
                         initialHandleROI = nil
                     }
@@ -311,18 +359,32 @@ struct AdjustableBoundingBox: View {
     /// Ensures box stays within screen bounds and maintains minimum size
     private func clampROI(_ rect: CGRect) -> CGRect {
         var newRect = rect
+        
+        // Ensure minimum width and height
+        newRect.size.width = max(newRect.size.width, minBoxSize)
+        newRect.size.height = max(newRect.size.height, minBoxSize)
+        
+        // Ensure box is within margins (left and top)
         newRect.origin.x = max(margin, newRect.origin.x)
         newRect.origin.y = max(margin, newRect.origin.y)
         
+        // Ensure box is within margins (right and bottom)
         if newRect.maxX > containerSize.width - margin {
-            newRect.size.width = containerSize.width - margin - newRect.origin.x
-        }
-        if newRect.maxY > containerSize.height - margin {
-            newRect.size.height = containerSize.height - margin - newRect.origin.y
+            newRect.origin.x = containerSize.width - margin - newRect.size.width
         }
         
-        newRect.size.width = max(newRect.size.width, 100)
-        newRect.size.height = max(newRect.size.height, 100)
+        if newRect.maxY > containerSize.height - margin {
+            newRect.origin.y = containerSize.height - margin - newRect.size.height
+        }
+        
+        // Final check for edge cases
+        if newRect.origin.x < margin {
+            newRect.origin.x = margin
+        }
+        
+        if newRect.origin.y < margin {
+            newRect.origin.y = margin
+        }
         
         return newRect
     }

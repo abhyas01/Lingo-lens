@@ -67,7 +67,7 @@ struct SavedWords: View {
             .searchable(text: $query, prompt: "Search saved words")
             
             if isLoadingLanguages {
-                ProgressView("Loading filters...")
+                ProgressView("Loading...")
                     .padding()
                     .background(Color(.systemBackground).opacity(0.7))
                     .cornerRadius(10)
