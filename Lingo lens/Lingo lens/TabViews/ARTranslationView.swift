@@ -2,7 +2,7 @@
 //  ARTranslationView.swift
 //  Lingo lens
 //
-//  (Updated to handle orientation changes better)
+//  Created by Abhyas Mall on 2/18/25.
 //
 
 import SwiftUI
@@ -99,10 +99,11 @@ struct ARTranslationView: View {
             arViewModel.resetAnnotations()
             showAlertAboutReset = neverShowAlertAboutReset ? false : true
             
+            // Clean up observer when view disappears
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         }
     }
-    
+
     private func setupOrientationObserver() {
         NotificationCenter.default.addObserver(
             forName: UIDevice.orientationDidChangeNotification,
@@ -112,15 +113,67 @@ struct ARTranslationView: View {
             let newOrientation = UIDevice.current.orientation
             if newOrientation.isValidInterfaceOrientation && newOrientation != currentOrientation {
                 currentOrientation = newOrientation
-
+                
                 if let sceneView = arViewModel.sceneView {
-                    DispatchQueue.main.async {
-                        let adjustedROI = arViewModel.adjustableROI
-                        arViewModel.adjustableROI = adjustedROI
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        let oldContainerSize = previousSize
+                        let newContainerSize = sceneView.bounds.size
+
+                        guard abs(oldContainerSize.width - newContainerSize.width) > 1 ||
+                              abs(oldContainerSize.height - newContainerSize.height) > 1 else {
+                            return
+                        }
+
+                        let margin: CGFloat = 16
+                        let minBoxSize: CGFloat = 100
+
+                        let currentROI = arViewModel.adjustableROI
+                        let relativeX = (currentROI.midX - margin) / (oldContainerSize.width - 2 * margin)
+                        let relativeY = (currentROI.midY - margin) / (oldContainerSize.height - 2 * margin)
+
+                        let maxWidth = newContainerSize.width - (2 * margin)
+                        let maxHeight = newContainerSize.height - (2 * margin)
+                        
+                        let scaleRatio = min(maxWidth / maxHeight, 1.0)
+                        let newWidth = min(currentROI.width * scaleRatio, maxWidth)
+                        let newHeight = min(currentROI.height * scaleRatio, maxHeight)
+
+                        let newMidX = margin + (relativeX * (newContainerSize.width - 2 * margin))
+                        let newMidY = margin + (relativeY * (newContainerSize.height - 2 * margin))
+                        
+                        let newOriginX = newMidX - (newWidth / 2)
+                        let newOriginY = newMidY - (newHeight / 2)
+
+                        var newROI = CGRect(
+                            x: newOriginX,
+                            y: newOriginY,
+                            width: newWidth,
+                            height: newHeight
+                        )
+
+                        newROI = enforceMarginConstraints(newROI, in: newContainerSize)
+                        
+                        arViewModel.adjustableROI = newROI
+                        previousSize = newContainerSize
                     }
                 }
             }
         }
+    }
+    
+    private func enforceMarginConstraints(_ rect: CGRect, in containerSize: CGSize) -> CGRect {
+        let margin: CGFloat = 16
+        let minBoxSize: CGFloat = 100
+        
+        var newRect = rect
+        
+        newRect.size.width = max(minBoxSize, min(newRect.size.width, containerSize.width - (2 * margin)))
+        newRect.size.height = max(minBoxSize, min(newRect.size.height, containerSize.height - (2 * margin)))
+        
+        newRect.origin.x = max(margin, min(newRect.origin.x, containerSize.width - newRect.size.width - margin))
+        newRect.origin.y = max(margin, min(newRect.origin.y, containerSize.height - newRect.size.height - margin))
+        
+        return newRect
     }
     
     private var mainARView: some View {
@@ -197,11 +250,16 @@ struct ARTranslationView: View {
                 .onAppear {
                     if arViewModel.adjustableROI == .zero {
                         let boxSize: CGFloat = 200
+                        let margin: CGFloat = 16
+
+                        let maxBoxWidth = min(boxSize, geo.size.width - (2 * margin))
+                        let maxBoxHeight = min(boxSize, geo.size.height - (2 * margin))
+                        
                         arViewModel.adjustableROI = CGRect(
-                            x: (geo.size.width - boxSize) / 2,
-                            y: (geo.size.height - boxSize) / 2,
-                            width: boxSize,
-                            height: boxSize
+                            x: (geo.size.width - maxBoxWidth) / 2,
+                            y: (geo.size.height - maxBoxHeight) / 2,
+                            width: maxBoxWidth,
+                            height: maxBoxHeight
                         )
                     }
                     previousSize = geo.size
@@ -211,11 +269,11 @@ struct ARTranslationView: View {
                     guard abs(oldSize.width - newSize.width) > 1 || abs(oldSize.height - newSize.height) > 1 else {
                         return
                     }
+
+                    let adjustedROI = arViewModel.adjustableROI.resizedAndClamped(from: oldSize, to: newSize)
+                    let constrainedROI = enforceMarginConstraints(adjustedROI, in: newSize)
                     
-                    let adjustedROI = arViewModel.adjustableROI
-                        .resizedAndClamped(from: oldSize, to: newSize)
-                    
-                    arViewModel.adjustableROI = adjustedROI
+                    arViewModel.adjustableROI = constrainedROI
                     
                     previousSize = newSize
                 }
@@ -225,29 +283,6 @@ struct ARTranslationView: View {
                 containerSize: geo.size
             )
         }
-    }
-    
-    private func clampROI(_ rect: CGRect, in containerSize: CGSize) -> CGRect {
-        let margin: CGFloat = 16
-        let minBoxSize: CGFloat = 100
-        
-        var newRect = rect
-        
-        newRect.size.width = max(newRect.size.width, minBoxSize)
-        newRect.size.height = max(newRect.size.height, minBoxSize)
-        
-        newRect.origin.x = max(margin, newRect.origin.x)
-        newRect.origin.y = max(margin, newRect.origin.y)
-        
-        if newRect.maxX > containerSize.width - margin {
-            newRect.origin.x = containerSize.width - margin - newRect.size.width
-        }
-        
-        if newRect.maxY > containerSize.height - margin {
-            newRect.origin.y = containerSize.height - margin - newRect.size.height
-        }
-        
-        return newRect
     }
 }
 

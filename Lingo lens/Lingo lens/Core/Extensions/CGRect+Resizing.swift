@@ -25,11 +25,13 @@ extension CGRect {
         let minWidth: CGFloat = 100
         let minHeight: CGFloat = 100
         
-        newRect.size.width = max(newRect.size.width, minWidth)
-        newRect.size.height = max(newRect.size.height, minHeight)
+        let maxWidth = newSize.width - (2 * margin)
+        let maxHeight = newSize.height - (2 * margin)
+        
+        newRect.size.width = max(minWidth, min(newRect.size.width, maxWidth))
+        newRect.size.height = max(minHeight, min(newRect.size.height, maxHeight))
         
         newRect.origin.x = max(margin, newRect.origin.x)
-        
         newRect.origin.y = max(margin, newRect.origin.y)
         
         if newRect.maxX > newSize.width - margin {
