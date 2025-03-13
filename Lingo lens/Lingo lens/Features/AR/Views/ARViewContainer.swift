@@ -19,6 +19,9 @@ struct ARViewContainer: UIViewRepresentable {
     /// Creates and configures the AR scene view with all needed settings
     func makeUIView(context: Context) -> ARSCNView {
         let sceneView = ARSCNView()
+
+        sceneView.backgroundColor = .black
+
         sceneView.delegate = context.coordinator
         sceneView.session.delegate = context.coordinator
         arViewModel.sceneView = sceneView

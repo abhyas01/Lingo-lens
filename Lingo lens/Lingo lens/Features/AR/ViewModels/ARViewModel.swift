@@ -119,7 +119,14 @@ class ARViewModel: ObservableObject {
     func resumeARSession() {
         guard let sceneView = sceneView else { return }
         
-        if sessionState != .active {
+        if sessionState != .paused {
+            sceneView.session.pause()
+            sessionState = .paused
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            sceneView.backgroundColor = .black
+            
             let configuration = ARWorldTrackingConfiguration()
             configuration.planeDetection = [.horizontal, .vertical]
             configuration.environmentTexturing = .automatic
@@ -128,8 +135,11 @@ class ARViewModel: ObservableObject {
                 configuration.sceneReconstruction = .mesh
             }
             
-            sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
-            sessionState = .active
+            UIView.transition(with: sceneView, duration: 0.3, options: .transitionCrossDissolve) {
+                sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors, .resetSceneReconstruction])
+            }
+            
+            self.sessionState = .active
         }
     }
     

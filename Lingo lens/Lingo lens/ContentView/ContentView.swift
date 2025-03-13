@@ -41,6 +41,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.settingsView)
         }
+        .animation(.easeInOut(duration: 0.2), value: selectedTab)
         .withCoreDataErrorHandling()
         .onReceive(translationService.$availableLanguages) { languages in
             if !languages.isEmpty {

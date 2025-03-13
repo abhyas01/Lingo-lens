@@ -23,6 +23,7 @@ struct ARTranslationView: View {
     @State private var neverShowAlertAboutReset: Bool = UserDefaults.standard.bool(forKey: "neverShowLabelRemovalWarning")
     
     @State private var currentOrientation = UIDevice.current.orientation
+    @State private var isARSessionLoading = true
 
     @EnvironmentObject var translationService: TranslationService
 
@@ -39,8 +40,18 @@ struct ARTranslationView: View {
                         }
                     )
                 } else {
-                    mainARView
-                        .withARErrorHandling()
+                    if isARSessionLoading {
+                        ZStack {
+                            Color.black.edgesIgnoringSafeArea(.all)
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.white)
+                        }
+                        .transition(.opacity)
+                    } else {
+                        mainARView
+                            .withARErrorHandling()
+                    }
                 }
             }
             .navigationTitle("Translate")
@@ -71,6 +82,11 @@ struct ARTranslationView: View {
                     arViewModel.resetAnnotations()
                     arViewModel.resumeARSession()
                     alreadyResumedARSession = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isARSessionLoading = false
+                        }
+                    }
                 }
             }
             

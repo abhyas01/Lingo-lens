@@ -62,13 +62,25 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     
     func session(_ session: ARSession, didFailWithError error: Error) {
         print("AR session error: \(error.localizedDescription)")
-    
-        ARErrorManager.shared.showError(
-            message: "AR camera session encountered an issue. Please try again.",
-            retryAction: { [weak self] in
-                self?.arViewModel.resumeARSession()
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                ARErrorManager.shared.showError(
+                    message: "AR camera session encountered an issue. Please try again.",
+                    retryAction: { [weak self] in
+                        guard let self = self else { return }
+                        
+                        self.arViewModel.pauseARSession()
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            self.arViewModel.resumeARSession()
+                        }
+                    }
+                )
             }
-        )
+        }
     }
     
     // MARK: - Annotation Interaction
