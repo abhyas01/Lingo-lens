@@ -10,11 +10,12 @@ import AVFoundation
 
 struct SavedTranslationDetailView: View {
     let translation: SavedTranslation
-    @State private var speechSynthesizer = AVSpeechSynthesizer()
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
-    @State private var showDeleteConfirmation = false
     
+    @ObservedObject private var speechManager = SpeechManager.shared
+    
+    @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
     @State private var showDeleteError = false
     @State private var deleteErrorMessage = ""
@@ -62,16 +63,36 @@ struct SavedTranslationDetailView: View {
                             .cornerRadius(12)
                         
                         Button(action: speakTranslation) {
-                            Label("Listen", systemImage: "speaker.wave.2.fill")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(12)
+                            HStack {
+                                if speechManager.isLoading {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .tint(.white)
+                                    Text("Loading...")
+                                } else if speechManager.isSpeaking {
+                                    Image(systemName: "speaker.wave.3.fill")
+                                    Text("Playing")
+                                } else {
+                                    Image(systemName: "speaker.wave.2.fill")
+                                    Text("Listen")
+                                }
+                            }
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                speechManager.isLoading ? Color.white :
+                                    speechManager.isSpeaking ? Color.orange : Color.blue
+                            )
+                            .cornerRadius(12)
                         }
-                        .accessibilityLabel("Listen to pronunciation")
-                        .accessibilityHint("Hear how \(translation.translatedText ?? "") is pronounced")
+                        .disabled(speechManager.isLoading)
+                        .accessibilityLabel(
+                            speechManager.isLoading ? "Loading audio" :
+                            speechManager.isSpeaking ? "Currently playing" : "Listen to pronunciation"
+                        )
+                        .accessibilityHint("Hear how \(translation.translatedText ?? "") is pronounced in \(translation.languageCode ?? "")")
                     }
                     .padding(.horizontal)
                     
@@ -122,6 +143,7 @@ struct SavedTranslationDetailView: View {
                 .padding(.bottom, 20)
             }
         }
+        .withSpeechErrorHandling()
         .alert("Delete Translation", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
@@ -137,24 +159,16 @@ struct SavedTranslationDetailView: View {
         }
         .disabled(isDeleting)
         .animation(.spring(response: 0.3), value: isDeleting)
+        .onDisappear {
+            SpeechManager.shared.stopSpeaking()
+        }
     }
     
     private func speakTranslation() {
-        speechSynthesizer.stopSpeaking(at: .immediate)
-        
-        let utterance = AVSpeechUtterance(string: translation.translatedText ?? "")
-        let langCode = (translation.languageCode ?? "").split(separator: "-").first ?? "en"
-        
-        utterance.voice = AVSpeechSynthesisVoice(language: String(langCode)) ??
-                         AVSpeechSynthesisVoice(language: "en-US")
-        
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.9
-        utterance.pitchMultiplier = 1.0
-        utterance.volume = 1.0
-        utterance.preUtteranceDelay = 0
-        utterance.postUtteranceDelay = 0
-        
-        speechSynthesizer.speak(utterance)
+        SpeechManager.shared.speak(
+            text: translation.translatedText ?? "",
+            languageCode: translation.languageCode ?? "en-US"
+        )
     }
     
     private func deleteTranslation() {

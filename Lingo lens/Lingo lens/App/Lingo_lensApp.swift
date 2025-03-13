@@ -23,9 +23,11 @@ struct Lingo_lensApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)) { _ in
                     persistenceController.saveContext()
+                    SpeechManager.shared.deactivateAudioSession()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                     persistenceController.saveContext()
+                    SpeechManager.shared.deactivateAudioSession()
                 }
         }
     }

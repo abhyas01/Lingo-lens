@@ -15,6 +15,8 @@ struct AnnotationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
      
+    @ObservedObject private var speechManager = SpeechManager.shared
+
     let originalText: String
     let targetLanguage: AvailableLanguage
 
@@ -27,7 +29,6 @@ struct AnnotationDetailView: View {
     @State private var showLongLoadingWarning: Bool = false
     @State private var showSavedConfirmation: Bool = false
     @State private var isAlreadySaved: Bool = false
-    @State private var speechSynthesizer = AVSpeechSynthesizer()
     
     @State private var isCheckingSavedStatus: Bool = false
     @State private var isSavingTranslation: Bool = false
@@ -89,16 +90,36 @@ struct AnnotationDetailView: View {
                                 
                                 HStack(spacing: 12) {
                                     Button(action: speakTranslation) {
-                                        Label("Listen", systemImage: "speaker.wave.2.fill")
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .padding()
-                                            .background(Color.blue)
-                                            .cornerRadius(12)
+                                        HStack {
+                                            if speechManager.isLoading {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .tint(.white)
+                                                Text("Loading...")
+                                            } else if speechManager.isSpeaking {
+                                                Image(systemName: "speaker.wave.3.fill")
+                                                Text("Playing")
+                                            } else {
+                                                Image(systemName: "speaker.wave.2.fill")
+                                                Text("Listen")
+                                            }
+                                        }
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(
+                                            speechManager.isLoading ? Color.white :
+                                                speechManager.isSpeaking ? Color.orange : Color.blue
+                                        )
+                                        .cornerRadius(12)
                                     }
-                                    .accessibilityLabel("Listen to pronunciation")
-                                    .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.localizedName())")
+                                    .disabled(speechManager.isLoading)
+                                    .accessibilityLabel(
+                                        speechManager.isLoading ? "Loading audio" :
+                                        speechManager.isSpeaking ? "Currently playing" : "Listen to pronunciation"
+                                    )
+                                    .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.shortName())")
                                     
                                     if isCheckingSavedStatus {
                                         Button(action: {}) {
@@ -221,6 +242,7 @@ struct AnnotationDetailView: View {
                 }
             }
         }
+        .withSpeechErrorHandling()
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .onAppear {
@@ -233,6 +255,9 @@ struct AnnotationDetailView: View {
                     showLongLoadingWarning = true
                 }
             }
+        }
+        .onDisappear {
+            SpeechManager.shared.stopSpeaking()
         }
         .onChange(of: isTranslating) { oldValue, newValue in
             if !newValue {
@@ -365,21 +390,10 @@ struct AnnotationDetailView: View {
      }
     
     private func speakTranslation() {
-        speechSynthesizer.stopSpeaking(at: .immediate)
-        
-        let utterance = AVSpeechUtterance(string: translatedText)
-        let langCode = targetLanguage.locale.languageCode?.debugDescription
-        
-        utterance.voice = AVSpeechSynthesisVoice(language: langCode) ??
-            AVSpeechSynthesisVoice(language: targetLanguage.locale.languageCode?.debugDescription ?? "en-US")
-        
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.9
-        utterance.pitchMultiplier = 1.0
-        utterance.volume = 1.0
-        utterance.preUtteranceDelay = 0
-        utterance.postUtteranceDelay = 0
-        
-        speechSynthesizer.speak(utterance)
+        SpeechManager.shared.speak(
+            text: translatedText,
+            languageCode: targetLanguage.shortName()
+        )
     }
 
     private func setupConfiguration() {

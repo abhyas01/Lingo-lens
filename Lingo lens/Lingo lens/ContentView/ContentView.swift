@@ -19,7 +19,7 @@ struct ContentView: View {
         case settingsView
     }
     
-    @State private var selectedTab: Tab = .settingsView
+    @State private var selectedTab: Tab = .arTranslationView
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -54,6 +54,22 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("No translation languages are currently available. This may be due to network connectivity issues or Apple's translation service not being available. Please try again later or check if device translation services are enabled in Settings.")
+        }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            if newValue == .arTranslationView || newValue == .savedWordsView {
+                Task {
+                    SpeechManager.shared.prepareAudioSession()
+                }
+            } else if newValue == .settingsView {
+                SpeechManager.shared.deactivateAudioSession()
+            }
+        }
+        .onAppear {
+            if selectedTab == .arTranslationView || selectedTab == .savedWordsView {
+                Task {
+                    SpeechManager.shared.prepareAudioSession()
+                }
+            }
         }
     }
 }
