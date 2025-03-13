@@ -8,7 +8,10 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var translationService: TranslationService
     @StateObject private var arViewModel = ARViewModel()
+    
+    @State private var showNoLanguagesAlert = false
 
     enum Tab {
         case arTranslationView
@@ -39,6 +42,18 @@ struct ContentView: View {
                 .tag(Tab.settingsView)
         }
         .withCoreDataErrorHandling()
+        .onReceive(translationService.$availableLanguages) { languages in
+            if !languages.isEmpty {
+                arViewModel.updateSelectedLanguageFromUserDefaults(availableLanguages: languages)
+            } else {
+                showNoLanguagesAlert = true
+            }
+        }
+        .alert("No Languages Available", isPresented: $showNoLanguagesAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("No translation languages are currently available. This may be due to network connectivity issues or Apple's translation service not being available. Please try again later or check if device translation services are enabled in Settings.")
+        }
     }
 }
 

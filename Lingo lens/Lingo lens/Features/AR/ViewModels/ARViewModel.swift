@@ -34,11 +34,32 @@ class ARViewModel: ObservableObject {
             updateAllAnnotationScales()
         }
     }
-    @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
     @Published var showDeleteConfirmation = false
     @Published var annotationToDelete: Int? = nil
     @Published var annotationNameToDelete: String = ""
     @Published var isDeletingAnnotation = false
+    
+    @Published var selectedLanguage: AvailableLanguage {
+        didSet {
+            UserDefaults.standard.set(selectedLanguage.shortName(), forKey: "selectedLanguageCode")
+        }
+    }
+
+    init() {
+        self.selectedLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
+    }
+    
+    func updateSelectedLanguageFromUserDefaults(availableLanguages: [AvailableLanguage]) {
+        let savedLanguageCode = UserDefaults.standard.string(forKey: "selectedLanguageCode")
+        
+        if let savedCode = savedLanguageCode,
+           let savedLanguage = availableLanguages.first(where: { $0.shortName() == savedCode }) {
+            self.selectedLanguage = savedLanguage
+        } else if !availableLanguages.isEmpty {
+            self.selectedLanguage = availableLanguages.first!
+            UserDefaults.standard.set(selectedLanguage.shortName(), forKey: "selectedLanguageCode")
+        }
+    }
     
     // Main AR view that we're managing
     weak var sceneView: ARSCNView?
