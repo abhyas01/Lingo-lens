@@ -252,7 +252,6 @@ struct ARTranslationView: View {
         .alert("Remove Label", isPresented: $arViewModel.showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
                 arViewModel.annotationToDelete = nil
-                arViewModel.isDetectionActive = true
             }
             Button("Delete", role: .destructive) {
                 arViewModel.deleteAnnotation()

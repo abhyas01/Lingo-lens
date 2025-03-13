@@ -65,6 +65,9 @@ struct ControlBar: View {
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             } else {
+                if settingsViewModel.isExpanded {
+                    settingsViewModel.toggleExpanded()
+                }
                 checkLanguageAndStartDetection()
             }
         }) {
