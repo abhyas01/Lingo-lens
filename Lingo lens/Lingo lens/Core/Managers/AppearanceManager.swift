@@ -42,13 +42,13 @@ class AppearanceManager: ObservableObject {
     
     @Published var colorSchemeOption: ColorSchemeOption {
         didSet {
-            UserDefaults.standard.set(colorSchemeOption.rawValue, forKey: "colorSchemeOption")
+            DataManager.shared.saveColorSchemeOption(colorSchemeOption.rawValue)
         }
     }
     
     init() {
-        let savedValue = UserDefaults.standard.integer(forKey: "colorSchemeOption")
-        
+        let savedValue = DataManager.shared.getColorSchemeOption()
+    
         if let option = ColorSchemeOption(rawValue: savedValue) {
             self.colorSchemeOption = option
         } else {

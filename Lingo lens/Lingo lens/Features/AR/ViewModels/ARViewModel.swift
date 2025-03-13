@@ -29,11 +29,6 @@ class ARViewModel: ObservableObject {
     @Published var showPlacementError = false
     @Published var isAddingAnnotation = false
     @Published var placementErrorMessage = "Could not detect a plane to anchor annotation. Try again changing angle or moving around."
-    @Published var annotationScale: CGFloat = 1.0 {
-        didSet {
-            updateAllAnnotationScales()
-        }
-    }
     @Published var showDeleteConfirmation = false
     @Published var annotationToDelete: Int? = nil
     @Published var annotationNameToDelete: String = ""
@@ -41,7 +36,13 @@ class ARViewModel: ObservableObject {
     
     @Published var selectedLanguage: AvailableLanguage {
         didSet {
-            UserDefaults.standard.set(selectedLanguage.shortName(), forKey: "selectedLanguageCode")
+            DataManager.shared.saveSelectedLanguageCode(selectedLanguage.shortName())
+        }
+    }
+    @Published var annotationScale: CGFloat = DataManager.shared.getAnnotationScale() {
+        didSet {
+            DataManager.shared.saveAnnotationScale(annotationScale)
+            updateAllAnnotationScales()
         }
     }
 
@@ -50,14 +51,14 @@ class ARViewModel: ObservableObject {
     }
     
     func updateSelectedLanguageFromUserDefaults(availableLanguages: [AvailableLanguage]) {
-        let savedLanguageCode = UserDefaults.standard.string(forKey: "selectedLanguageCode")
-        
+        let savedLanguageCode = DataManager.shared.getSelectedLanguageCode()
+    
         if let savedCode = savedLanguageCode,
            let savedLanguage = availableLanguages.first(where: { $0.shortName() == savedCode }) {
             self.selectedLanguage = savedLanguage
         } else if !availableLanguages.isEmpty {
             self.selectedLanguage = availableLanguages.first!
-            UserDefaults.standard.set(selectedLanguage.shortName(), forKey: "selectedLanguageCode")
+            DataManager.shared.saveSelectedLanguageCode(selectedLanguage.shortName())
         }
     }
     

@@ -20,7 +20,7 @@ struct ARTranslationView: View {
     @State private var alreadyResumedARSession = false
     @State private var showAlertAboutReset = false
     @State private var isViewActive = false
-    @State private var neverShowAlertAboutReset: Bool = UserDefaults.standard.bool(forKey: "neverShowLabelRemovalWarning")
+    @State private var neverShowAlertAboutReset: Bool = DataManager.shared.getNeverShowLabelRemovalWarning()
     
     @State private var currentOrientation = UIDevice.current.orientation
     @State private var isARSessionLoading = true
@@ -266,7 +266,7 @@ struct ARTranslationView: View {
         .alert("Label Removal Warning", isPresented: $showAlertAboutReset) {
             Button("Ok") {}
             Button("Don't Warn Again", role: .cancel) {
-                UserDefaults.standard.set(true, forKey: "neverShowLabelRemovalWarning")
+                DataManager.shared.saveNeverShowLabelRemovalWarning(true)
                 neverShowAlertAboutReset = true
             }
         } message: {
