@@ -14,12 +14,13 @@ struct ARTranslationView: View {
     @ObservedObject var arViewModel: ARViewModel
     @StateObject private var settingsViewModel = SettingsViewModel()
     @StateObject private var cameraPermissionManager = CameraPermissionManager()
+    
     @State private var previousSize: CGSize = .zero
     @State private var showInstructions = false
     @State private var alreadyResumedARSession = false
     @State private var showAlertAboutReset = false
-    @State private var neverShowAlertAboutReset = false
     @State private var isViewActive = false
+    @State private var neverShowAlertAboutReset: Bool = UserDefaults.standard.bool(forKey: "neverShowLabelRemovalWarning")
     
     @State private var currentOrientation = UIDevice.current.orientation
 
@@ -88,7 +89,10 @@ struct ARTranslationView: View {
                 arViewModel.pauseARSession()
                 arViewModel.resetAnnotations()
                 alreadyResumedARSession = false
-                showAlertAboutReset = neverShowAlertAboutReset ? false : true
+                
+                if !neverShowAlertAboutReset {
+                    showAlertAboutReset = true
+                }
             default:
                 break
             }
@@ -97,7 +101,10 @@ struct ARTranslationView: View {
             isViewActive = false
             arViewModel.pauseARSession()
             arViewModel.resetAnnotations()
-            showAlertAboutReset = neverShowAlertAboutReset ? false : true
+            
+            if !neverShowAlertAboutReset {
+                showAlertAboutReset = true
+            }
             
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         }
@@ -243,6 +250,7 @@ struct ARTranslationView: View {
         .alert("Label Removal Warning", isPresented: $showAlertAboutReset) {
             Button("Ok") {}
             Button("Don't Warn Again", role: .cancel) {
+                UserDefaults.standard.set(true, forKey: "neverShowLabelRemovalWarning")
                 neverShowAlertAboutReset = true
             }
         } message: {
