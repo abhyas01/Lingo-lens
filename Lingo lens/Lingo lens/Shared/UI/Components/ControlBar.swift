@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Translation
 
 struct ControlBar: View {
     @ObservedObject var arViewModel: ARViewModel
@@ -14,6 +15,9 @@ struct ControlBar: View {
     
     @State private var isCheckingLanguage = false
     @State private var showLanguageDownloadPrompt = false
+    
+    @State private var isPreparingLanguage = false
+    @State private var downloadConfig: TranslationSession.Configuration? = nil
     
     var body: some View {
         HStack {
@@ -32,6 +36,7 @@ struct ControlBar: View {
                 }
             )
         }
+        .background(translationTaskBackground)
     }
     
     private var settingsButton: some View {
@@ -84,6 +89,19 @@ struct ControlBar: View {
                 .frame(minWidth: 140)
                 .background(Color.orange.opacity(0.8))
                 .cornerRadius(12)
+            } else if isPreparingLanguage {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .tint(.white)
+                    Text("Preparing")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(12)
+                .frame(minWidth: 140)
+                .background(Color.blue.opacity(0.8))
+                .cornerRadius(12)
             } else {
                 Text(arViewModel.isDetectionActive ?
                      "Stop Detection" : "Start Detection")
@@ -100,7 +118,7 @@ struct ControlBar: View {
         .accessibilityHint(arViewModel.isDetectionActive ?
             "Stop detecting objects in camera view" :
             "Begin detecting objects in camera view")
-        .disabled(isCheckingLanguage)
+        .disabled(isCheckingLanguage || isPreparingLanguage)
     }
     
     private var addAnnotationButton: some View {
@@ -164,12 +182,48 @@ struct ControlBar: View {
                 isCheckingLanguage = false
                 
                 if isDownloaded {
-                    startDetection()
+                    prepareLanguageAndStartDetection()
                 } else {
                     showLanguageDownloadPrompt = true
                 }
             }
         }
+    }
+    
+    private func prepareLanguageAndStartDetection() {
+        isPreparingLanguage = true
+        
+        downloadConfig = TranslationSession.Configuration(
+            source: translationService.sourceLanguage,
+            target: arViewModel.selectedLanguage.locale
+        )
+    }
+
+    
+    private var translationTaskBackground: some View {
+        Group {
+            if isPreparingLanguage, let config = downloadConfig {
+                Text("")
+                    .translationTask(config) { session in
+                        do {
+                            try await session.prepareTranslation()
+                            
+                            await MainActor.run {
+                                isPreparingLanguage = false
+                                downloadConfig = nil
+                                startDetection()
+                            }
+                        } catch {
+                            await MainActor.run {
+                                isPreparingLanguage = false
+                                downloadConfig = nil
+                                startDetection()
+                            }
+                        }
+                    }
+            }
+        }
+        .hidden()
     }
     
     private func startDetection() {

@@ -224,7 +224,7 @@ struct AnnotationDetailView: View {
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .onAppear {
-            setupConfiguration()            
+            setupConfiguration()
             startTranslation()
             checkIfAlreadySaved()
             
