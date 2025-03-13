@@ -99,7 +99,6 @@ struct ARTranslationView: View {
             arViewModel.resetAnnotations()
             showAlertAboutReset = neverShowAlertAboutReset ? false : true
             
-            // Clean up observer when view disappears
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         }
     }
@@ -210,6 +209,30 @@ struct ARTranslationView: View {
                 )
             }
             
+            if arViewModel.isDeletingAnnotation {
+                ZStack {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                    
+                    VStack {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .tint(.white)
+                            Text("Removing label...")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(12)
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
+            }
+            
             if settingsViewModel.isExpanded {
                 SettingsPanel(
                     arViewModel: arViewModel,
@@ -224,6 +247,18 @@ struct ARTranslationView: View {
             }
         } message: {
             Text("Whenever you leave the Translate tab, all labels will be removed from the objects in the real world.")
+        }
+        
+        .alert("Remove Label", isPresented: $arViewModel.showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                arViewModel.annotationToDelete = nil
+                arViewModel.isDetectionActive = true
+            }
+            Button("Delete", role: .destructive) {
+                arViewModel.deleteAnnotation()
+            }
+        } message: {
+            Text("Remove the \"\(arViewModel.annotationNameToDelete)\" label?")
         }
         
         .animation(.easeInOut, value: arViewModel.showPlacementError)

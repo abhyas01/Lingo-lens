@@ -35,6 +35,10 @@ class ARViewModel: ObservableObject {
         }
     }
     @Published var selectedLanguage: AvailableLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
+    @Published var showDeleteConfirmation = false
+    @Published var annotationToDelete: Int? = nil
+    @Published var annotationNameToDelete: String = ""
+    @Published var isDeletingAnnotation = false
     
     // Main AR view that we're managing
     weak var sceneView: ARSCNView?
@@ -42,6 +46,37 @@ class ARViewModel: ObservableObject {
     // Stores all placed annotations and their metadata
     var annotationNodes: [(node: SCNNode, originalText: String, worldPos: SIMD3<Float>)] = []
 
+    func showDeleteAnnotationAlert(index: Int, objectName: String) {
+        annotationToDelete = index
+        if objectName.count > 15 {
+            let endIndex = objectName.index(objectName.startIndex, offsetBy: 12)
+            annotationNameToDelete = String(objectName[..<endIndex]) + "..."
+        } else {
+            annotationNameToDelete = objectName
+        }
+        showDeleteConfirmation = true
+    }
+
+    
+    func deleteAnnotation() {
+        guard let index = annotationToDelete, index < annotationNodes.count else { return }
+        
+        isDeletingAnnotation = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            
+            let (node, _, _) = self.annotationNodes[index]
+            node.removeFromParentNode()
+            
+            self.annotationNodes.remove(at: index)
+            
+            self.isDeletingAnnotation = false
+            self.annotationToDelete = nil
+            self.showDeleteConfirmation = false
+        }
+    }
+    
     // MARK: - Annotation Management
 
     private func updateAllAnnotationScales() {

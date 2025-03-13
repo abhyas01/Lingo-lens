@@ -132,5 +132,45 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         }
 
     }
+    
+    @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard let sceneView = arViewModel.sceneView, gesture.state == .began else { return }
+        
+        let location = gesture.location(in: sceneView)
+        
+        var closestAnnotation: (distance: CGFloat, index: Int, text: String)? = nil
+        
+        for (index, annotation) in arViewModel.annotationNodes.enumerated() {
+            guard let planeNode = annotation.node.childNode(withName: "annotationPlane", recursively: false),
+                  let plane = planeNode.geometry as? SCNPlane,
+                  let _ = plane.firstMaterial else { continue }
+            
+            let hitResults = sceneView.hitTest(location, options: [
+                .boundingBoxOnly: false,
+                .searchMode: SCNHitTestSearchMode.all.rawValue
+            ])
+            
+            guard let _ = hitResults.first(where: { $0.node == planeNode }) else { continue }
+            
+            let worldPos = planeNode.worldPosition
+            let projectedCenter = sceneView.projectPoint(worldPos)
+            let center = CGPoint(x: CGFloat(projectedCenter.x), y: CGFloat(projectedCenter.y))
+            let dx = center.x - location.x
+            let dy = center.y - location.y
+            let distance = hypot(dx, dy)
+            
+            if closestAnnotation == nil || distance < closestAnnotation!.distance {
+                closestAnnotation = (distance, index, annotation.originalText)
+            }
+        }
+        
+        if let closest = closestAnnotation {
+            arViewModel.isDetectionActive = false
+            arViewModel.detectedObjectName = ""
+            
+            let textToShow = closest.text
+            arViewModel.showDeleteAnnotationAlert(index: closest.index, objectName: textToShow)
+        }
+    }
 
 }
