@@ -8,7 +8,6 @@
 
 import SwiftUI
 import Translation
-import Combine
 
 struct LanguageDownloadView: View {
     let language: AvailableLanguage

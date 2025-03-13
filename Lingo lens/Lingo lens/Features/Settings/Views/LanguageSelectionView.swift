@@ -9,111 +9,111 @@ import SwiftUI
 import Translation
 
 struct LanguageSelectionView: View {
+    @Environment(\.dismiss) private var dismiss
+    
     @EnvironmentObject var translationService: TranslationService
     @Binding var selectedLanguage: AvailableLanguage
-    @Binding var isPresented: Bool
     @State private var tempSelectedLanguage: AvailableLanguage
     
     @State private var isDownloading = false
     @State private var showDownloadError = false
     @State private var downloadConfig: TranslationSession.Configuration? = nil
     
-    init(selectedLanguage: Binding<AvailableLanguage>, isPresented: Binding<Bool>) {
+    init(selectedLanguage: Binding<AvailableLanguage>) {
         self._selectedLanguage = selectedLanguage
-        self._isPresented = isPresented
         self._tempSelectedLanguage = State(initialValue: selectedLanguage.wrappedValue)
     }
     
     var body: some View {
-        NavigationView {
-            List(translationService.availableLanguages, id: \.id) { language in
-                HStack {
-                    Text(language.localizedName())
-                    Spacer()
-                    if language.shortName() == tempSelectedLanguage.shortName() {
-                        Image(systemName: "checkmark")
-                            .foregroundColor(.blue)
-                    }
+        List(translationService.availableLanguages, id: \.id) { language in
+            HStack {
+                Text(language.localizedName())
+                Spacer()
+                if language.shortName() == tempSelectedLanguage.shortName() {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.blue)
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(language.localizedName())")
-                .accessibilityValue(language.shortName() == tempSelectedLanguage.shortName() ? "Selected" : "")
-                .accessibilityAddTraits(language.shortName() == tempSelectedLanguage.shortName() ? .isSelected : [])
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    tempSelectedLanguage = language
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(language.localizedName())")
+            .accessibilityValue(language.shortName() == tempSelectedLanguage.shortName() ? "Selected" : "")
+            .accessibilityAddTraits(language.shortName() == tempSelectedLanguage.shortName() ? .isSelected : [])
+            .contentShape(Rectangle())
+            .onTapGesture {
+                tempSelectedLanguage = language
+            }
+        }
+        
+        .onChange(of: translationService.availableLanguages) {
+            if !translationService.availableLanguages.contains(where: { $0.shortName() == tempSelectedLanguage.shortName() }) {
+                tempSelectedLanguage = translationService.availableLanguages.first ?? tempSelectedLanguage
+            }
+        }
+        
+        .onAppear {
+            tempSelectedLanguage = selectedLanguage
+        }
+        
+        .navigationTitle("Select Language")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
                 }
             }
             
-            .onChange(of: translationService.availableLanguages) {
-                if !translationService.availableLanguages.contains(where: { $0.shortName() == tempSelectedLanguage.shortName() }) {
-                    tempSelectedLanguage = translationService.availableLanguages.first ?? tempSelectedLanguage
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    isDownloading = true
+                    downloadConfig = TranslationSession.Configuration(
+                        source: translationService.sourceLanguage,
+                        target: tempSelectedLanguage.locale
+                    )
                 }
             }
+        }
+        .overlay(
+            isDownloading ?
+                VStack {
+                    ProgressView("Preparing language...")
+                    Text("This might take a moment")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                }
+                .padding()
+                .background(Color(.systemBackground).opacity(0.9))
+                .cornerRadius(10)
+                : nil
+        )
+        .disabled(isDownloading)
+        .alert("Download Error", isPresented: $showDownloadError) {
+            Button("OK") {
+                selectedLanguage = tempSelectedLanguage
+                dismiss()
+            }
+        } message: {
+            Text("Unable to download language data. Translations may not work properly.")
+        }
+        .translationTask(downloadConfig) { session in
+            guard isDownloading else { return }
             
-            .onAppear {
-                tempSelectedLanguage = selectedLanguage
-            }
+            do {
+                try await session.prepareTranslation()
             
-            .navigationTitle("Select Language")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        isPresented = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        isDownloading = true
-                        downloadConfig = TranslationSession.Configuration(
-                            source: translationService.sourceLanguage,
-                            target: tempSelectedLanguage.locale
-                        )
-                    }
-                }
-            }
-            .overlay(
-                isDownloading ?
-                    VStack {
-                        ProgressView("Preparing language...")
-                        Text("This might take a moment")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 4)
-                    }
-                    .padding()
-                    .background(Color(.systemBackground).opacity(0.9))
-                    .cornerRadius(10)
-                    : nil
-            )
-            .disabled(isDownloading)
-            .alert("Download Error", isPresented: $showDownloadError) {
-                Button("OK") {
+                await MainActor.run {
+                    isDownloading = false
                     selectedLanguage = tempSelectedLanguage
-                    isPresented = false
+                    dismiss()
+                    downloadConfig = nil
                 }
-            } message: {
-                Text("Unable to download language data. Translations may not work properly.")
-            }
-            .translationTask(downloadConfig) { session in
-                guard isDownloading else { return }
-                
-                do {
-                    try await session.prepareTranslation()
-                
-                    await MainActor.run {
-                        isDownloading = false
-                        selectedLanguage = tempSelectedLanguage
-                        isPresented = false
-                        downloadConfig = nil
-                    }
-                } catch {
-                    await MainActor.run {
-                        isDownloading = false
-                        showDownloadError = true
-                        downloadConfig = nil
-                    }
+            } catch {
+                await MainActor.run {
+                    isDownloading = false
+                    showDownloadError = true
+                    downloadConfig = nil
                 }
             }
         }
@@ -126,9 +126,7 @@ struct LanguageSelectionView_Previews: PreviewProvider {
         let sampleLanguage = AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES"))
         
         LanguageSelectionView(
-            selectedLanguage: .constant(sampleLanguage),
-            isPresented: .constant(true)
-        )
+            selectedLanguage: .constant(sampleLanguage))
         .environmentObject({
             let service = TranslationService()
             service.availableLanguages = [

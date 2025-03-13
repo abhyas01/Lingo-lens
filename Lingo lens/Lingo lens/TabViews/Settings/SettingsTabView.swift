@@ -9,16 +9,19 @@ import SwiftUI
 
 struct SettingsTabView: View {
     @ObservedObject var arViewModel: ARViewModel
-    @State private var showLanguageSelection = false
     @EnvironmentObject private var appearanceManager: AppearanceManager
+    
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     
     var body: some View {
         NavigationView {
             List {
                 Section(header: Text("Translation")) {
-                    Button(action: {
-                        showLanguageSelection = true
-                    }) {
+                    NavigationLink {
+                        LanguageSelectionView(
+                            selectedLanguage: $arViewModel.selectedLanguage)
+                    } label: {
                         HStack {
                             Text("Language")
                                 .foregroundStyle(.primary)
@@ -27,11 +30,8 @@ struct SettingsTabView: View {
                             
                             Text(arViewModel.selectedLanguage.localizedName())
                                 .foregroundStyle(.secondary)
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.secondary)
                         }
+                        .padding(.trailing, 5)
                     }
                     .accessibilityLabel("Select Translation Language")
                     .accessibilityValue("Current language: \(arViewModel.selectedLanguage.localizedName())")
@@ -59,19 +59,13 @@ struct SettingsTabView: View {
                             .foregroundStyle(.blue)
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text("\(version) (\(build))")
                             .foregroundStyle(.secondary)
                     }
                 }
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Settings")
-            .sheet(isPresented: $showLanguageSelection) {
-                LanguageSelectionView(
-                    selectedLanguage: $arViewModel.selectedLanguage,
-                    isPresented: $showLanguageSelection
-                )
-            }
         }
     }
     

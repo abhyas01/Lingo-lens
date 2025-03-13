@@ -43,7 +43,7 @@ struct ARViewContainer: UIViewRepresentable {
         sceneView.addGestureRecognizer(tapGesture)
         
         let longPressGesture = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handleLongPress(_:)))
-        longPressGesture.minimumPressDuration = 0.75
+        longPressGesture.minimumPressDuration = 0.50
         sceneView.addGestureRecognizer(longPressGesture)
         
         return sceneView
