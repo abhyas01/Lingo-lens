@@ -7,6 +7,7 @@
 
 import Foundation
 import Translation
+import SwiftUI
 
 /// Manages language selection, availability, and translation requests
 class TranslationService: ObservableObject {
@@ -18,6 +19,8 @@ class TranslationService: ObservableObject {
     @Published var availableLanguages: [AvailableLanguage] = []
     
     @Published var isInitialLoading = true
+    
+    @Published var isPreparingTranslation = false
     
     /// Fixed source language (English) for all translations
     let sourceLanguage = Locale.Language(languageCode: "en")
@@ -58,6 +61,44 @@ class TranslationService: ObservableObject {
                 .map { AvailableLanguage(locale: $0) }
                 .sorted()
             isInitialLoading = false
+        }
+    }
+    
+    func prepareTranslationForLanguage(_ language: AvailableLanguage) {
+        isPreparingTranslation = true
+        
+        let configuration = TranslationSession.Configuration(
+            source: sourceLanguage,
+            target: language.locale
+        )
+        
+        Task {
+            let backgroundTask = Task {
+                await withCheckedContinuation { continuation in
+                    let _ = Text("")
+                        .translationTask(configuration) { session in
+                            do {
+                                try await session.prepareTranslation()
+                                
+                                await MainActor.run {
+                                    self.isPreparingTranslation = false
+                                    print("Successfully prepared translation for \(language.localizedName())")
+                                }
+                                
+                                continuation.resume(returning: true)
+                            } catch {
+                                await MainActor.run {
+                                    self.isPreparingTranslation = false
+                                    print("Failed to prepare translation for \(language.localizedName()): \(error.localizedDescription)")
+                                }
+                                
+                                continuation.resume(returning: false)
+                            }
+                        }
+                }
+            }
+            
+            _ = await backgroundTask.value
         }
     }
     
