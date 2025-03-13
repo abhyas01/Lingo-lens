@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsTabView: View {
     @ObservedObject var arViewModel: ARViewModel
     @State private var showLanguageSelection = false
+    @EnvironmentObject private var appearanceManager: AppearanceManager
     
     var body: some View {
         NavigationView {
@@ -36,6 +37,22 @@ struct SettingsTabView: View {
                     .accessibilityValue("Current language: \(arViewModel.selectedLanguage.localizedName())")
                 }
                 
+                Section(header: Text("Appearance")) {
+                    Picker("Color Scheme", selection: $appearanceManager.colorSchemeOption) {
+                        ForEach(AppearanceManager.ColorSchemeOption.allCases) { option in
+                            HStack {
+                                Image(systemName: option.icon)
+                                    .foregroundColor(iconColor(for: option))
+                                Text(option.title)
+                            }
+                            .tag(option)
+                        }
+                    }
+                    .pickerStyle(NavigationLinkPickerStyle())
+                    .accessibilityLabel("Choose Color Scheme")
+                    .accessibilityHint("Select between light mode, dark mode, or system default")
+                }
+                
                 Section(header: Text("About")) {
                     HStack {
                         Image(systemName: "number")
@@ -57,6 +74,17 @@ struct SettingsTabView: View {
             }
         }
     }
+    
+    private func iconColor(for option: AppearanceManager.ColorSchemeOption) -> Color {
+        switch option {
+        case .system:
+            return .gray
+        case .light:
+            return .yellow
+        case .dark:
+            return .blue
+        }
+    }
 }
 
 #Preview {
@@ -74,4 +102,5 @@ struct SettingsTabView: View {
     
     return SettingsTabView(arViewModel: arViewModel)
             .environmentObject(translationService)
+            .environmentObject(AppearanceManager())
 }
