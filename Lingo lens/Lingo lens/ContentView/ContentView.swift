@@ -19,7 +19,7 @@ struct ContentView: View {
         case settingsView
     }
     
-    @State private var selectedTab: Tab = .arTranslationView
+    @State private var selectedTab: Tab = .settingsView
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -45,7 +45,8 @@ struct ContentView: View {
         .onReceive(translationService.$availableLanguages) { languages in
             if !languages.isEmpty {
                 arViewModel.updateSelectedLanguageFromUserDefaults(availableLanguages: languages)
-            } else {
+                showNoLanguagesAlert = false
+            } else if !translationService.isInitialLoading {
                 showNoLanguagesAlert = true
             }
         }

@@ -17,6 +17,8 @@ class TranslationService: ObservableObject {
     /// List of languages supported by the iOS translation system
     @Published var availableLanguages: [AvailableLanguage] = []
     
+    @Published var isInitialLoading = true
+    
     /// Fixed source language (English) for all translations
     let sourceLanguage = Locale.Language(languageCode: "en")
     
@@ -47,12 +49,15 @@ class TranslationService: ObservableObject {
     
     /// Fetches available languages from iOS translation system
     func getSupportedLanguages() {
+        isInitialLoading = true
+        
         Task { @MainActor in
             let supportedLanguages = await LanguageAvailability().supportedLanguages
             availableLanguages = supportedLanguages
                 .filter { $0.languageCode != "en" }
                 .map { AvailableLanguage(locale: $0) }
                 .sorted()
+            isInitialLoading = false
         }
     }
     
