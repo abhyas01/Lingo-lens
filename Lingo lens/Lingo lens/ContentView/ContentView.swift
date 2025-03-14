@@ -84,6 +84,17 @@ struct ContentView: View {
                 }
             }
         }
+        
+        // When app becomes active again from background
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            
+            // Prepare audio session if we're on a tab that needs it
+            if selectedTab == .arTranslationView || selectedTab == .savedWordsView {
+                Task {
+                    SpeechManager.shared.prepareAudioSession()
+                }
+            }
+        }
     }
 }
 
