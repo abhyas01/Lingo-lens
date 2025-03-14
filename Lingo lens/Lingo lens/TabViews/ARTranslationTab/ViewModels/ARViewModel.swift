@@ -73,6 +73,7 @@ class ARViewModel: ObservableObject {
     // Persists to UserDefaults when changed
     @Published var annotationScale: CGFloat = DataManager.shared.getAnnotationScale() {
         didSet {
+            print("Annotation size slider updated to: \(annotationScale)")
             DataManager.shared.saveAnnotationScale(annotationScale)
             updateAllAnnotationScales()
         }

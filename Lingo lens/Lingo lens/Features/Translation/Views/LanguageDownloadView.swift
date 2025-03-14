@@ -42,6 +42,7 @@ struct LanguageDownloadView: View {
         self.language = language
         self._isPresented = isPresented
         self.onDownloadComplete = onDownloadComplete
+        print("📥 Language download view initialized for: \(language.localizedName()) (\(language.shortName()))")
     }
     
     var body: some View {
@@ -52,6 +53,7 @@ struct LanguageDownloadView: View {
                 HStack {
                     Spacer()
                     Button(action: {
+                        print("👆 Button pressed: Close language download view")
                         stopPeriodicCheck()
                         isPresented = false
                     }) {
@@ -92,11 +94,15 @@ struct LanguageDownloadView: View {
                             .foregroundColor(.green)
                         
                         Button(action: {
+                            print("👆 Button pressed: Continue after download")
+
                             isPerformingAction = true
                             stopPeriodicCheck()
                             
                             // Small delay to show the action is in progress
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                print("✅ Download complete, dismissing view and continuing")
+
                                 isPresented = false
                                 onDownloadComplete()
                             }
@@ -164,12 +170,6 @@ struct LanguageDownloadView: View {
                         .background(Color.blue)
                         .cornerRadius(12)
                         .padding(.horizontal)
-                        
-                        Button("Check Again") {
-                            verifyLanguageDownloaded()
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
                     }
                 } else if isDownloading {
                     
@@ -229,6 +229,7 @@ struct LanguageDownloadView: View {
                             .foregroundStyle(.secondary)
                         
                         Button("Open Settings to Download") {
+                            print("👆 Button pressed: Open settings for language download")
                             openAppSettings()
                         }
                         .font(.headline)
@@ -261,21 +262,27 @@ struct LanguageDownloadView: View {
             .translationTask(configuration) { session in
                 if isDownloading {
                     do {
-                        
+                        print("🔄 Executing translation task to prepare language: \(language.shortName())")
+
                         // This triggers the iOS download dialog for the language
                         try await session.prepareTranslation()
+                        print("✅ Initiated language download for: \(language.shortName())")
+                        
                         await MainActor.run {
                             isDownloading = false
                             isVerifyingDownload = true
-                        
+                            print("🔍 Starting verification after download initiation")
+
                             // Wait a moment before checking if download completed
                             Task {
                                 try? await Task.sleep(nanoseconds: 1_000_000_000)
-                                
+                                print("🔍 Performing verification check after delay")
                                 verifyLanguageDownloaded()
                             }
                         }
                     } catch {
+                        print("❌ Failed to prepare language download: \(error.localizedDescription)")
+
                         await MainActor.run {
                             isDownloading = false
                             isVerifyingDownload = false
@@ -321,6 +328,7 @@ struct LanguageDownloadView: View {
     
     /// Initiates the language download process
     private func startDownload() {
+        print("👆 Button pressed: Start language download")
         print("📥 Starting download for language: \"\(language.shortName())\"")
 
         isDownloading = true
@@ -355,6 +363,7 @@ struct LanguageDownloadView: View {
     /// Useful when user downloads language through Settings app
     private func startPeriodicCheck() {
         stopPeriodicCheck()
+        print("⏱️ Starting periodic check for language download status: \(language.shortName())")
         
         periodicCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
 
@@ -367,6 +376,7 @@ struct LanguageDownloadView: View {
     
     /// Stops the periodic check timer
     private func stopPeriodicCheck() {
+        print("⏱️ Stopping periodic language download check")
         periodicCheckTimer?.invalidate()
         periodicCheckTimer = nil
     }
@@ -377,6 +387,8 @@ struct LanguageDownloadView: View {
             let isDownloaded = await translationService.isLanguageDownloaded(language: language)
             
             if isDownloaded {
+                print("✅ Periodic check detected successful download of language: \(language.shortName())")
+
                 await MainActor.run {
                     downloadComplete = true
                     downloadFailed = false

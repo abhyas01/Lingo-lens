@@ -147,6 +147,7 @@ struct SavedTranslationDetailView: View {
                             
                             // Normal delete button
                             Button(action: {
+                                print("👆 Button pressed: Show delete confirmation for translation")
                                 showDeleteConfirmation = true
                             }) {
                                 Label("Delete", systemImage: "trash")
@@ -211,6 +212,7 @@ struct SavedTranslationDetailView: View {
     /// Triggers text-to-speech to pronounce the translated text
     /// Uses the target language's voice settings
     private func speakTranslation() {
+        print("👆 Button pressed: Speak translation \"\(translation.translatedText ?? "")\" in language: \(translation.languageCode ?? "unknown")")
         SpeechManager.shared.speak(
             text: translation.translatedText ?? "",
             languageCode: translation.languageCode ?? "en-US"

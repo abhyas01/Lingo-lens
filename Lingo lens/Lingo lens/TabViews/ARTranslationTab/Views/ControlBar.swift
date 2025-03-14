@@ -50,14 +50,18 @@ struct ControlBar: View {
     // Left button - opens settings panel
     private var settingsButton: some View {
         Button(action: {
+            print("👆 Button pressed: Settings panel toggle")
             withAnimation {
                 settingsViewModel.toggleExpanded()
             }
             
             // Stop detection when settings panel opens
             if settingsViewModel.isExpanded {
+                print("⚙️ Settings panel opened - stopping detection")
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
+            } else {
+                print("⚙️ Settings panel closed")
             }
         }) {
             Image(systemName: "textformat.size")
@@ -79,18 +83,22 @@ struct ControlBar: View {
     private var detectionToggleButton: some View {
         Button(action: {
             if arViewModel.isDetectionActive {
+                print("👆 Button pressed: Stop detection")
                 
                 // If active, stop detection
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             } else {
-                
+                print("👆 Button pressed: Start detection")
+
                 // If inactive, close settings panel if open
                 if settingsViewModel.isExpanded {
+                    print("⚙️ Closing settings panel before starting detection")
                     settingsViewModel.toggleExpanded()
                 }
                 
                 // Then check language and start detection
+                print("🔍 Checking language availability before starting detection")
                 checkLanguageAndStartDetection()
             }
         }) {
@@ -165,7 +173,11 @@ struct ControlBar: View {
                 
                 // Add button - enabled only when object is detected
                 Button(action: {
-                    guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.isAddingAnnotation else { return }
+                    guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.isAddingAnnotation else {
+                        print("👆 Button pressed: Add annotation - but disabled (no object detected or already adding)")
+                        return
+                    }
+                    print("👆 Button pressed: Add annotation for \"\(arViewModel.detectedObjectName)\"")
                     arViewModel.addAnnotation()
                 }) {
                     Image(systemName: "plus.circle.fill")
@@ -202,6 +214,7 @@ struct ControlBar: View {
     
     // Checks if language is downloaded before starting detection
     private func checkLanguageAndStartDetection() {
+        print("🌐 Starting language download check for: \(arViewModel.selectedLanguage.shortName())")
         isCheckingLanguage = true
         
         Task {
@@ -213,10 +226,12 @@ struct ControlBar: View {
                 isCheckingLanguage = false
                 
                 if isDownloaded {
-                    
+                    print("✅ Language \(arViewModel.selectedLanguage.shortName()) is already downloaded")
+
                     // If language already downloaded, prepare it
                     prepareLanguageAndStartDetection()
                 } else {
+                    print("⚠️ Language \(arViewModel.selectedLanguage.shortName()) needs to be downloaded")
                     showLanguageDownloadPrompt = true
                 }
             }
@@ -225,6 +240,7 @@ struct ControlBar: View {
     
     // Sets up translation configuration for the language
     private func prepareLanguageAndStartDetection() {
+        print("🔄 Preparing language for detection: \(arViewModel.selectedLanguage.shortName())")
         isPreparingLanguage = true
         
         downloadConfig = TranslationSession.Configuration(
@@ -273,6 +289,7 @@ struct ControlBar: View {
                 height: boxSize
             )
         }
+        print("🔍 Starting object detection with language: \(arViewModel.selectedLanguage.shortName())")
         arViewModel.isDetectionActive = true
     }
 }

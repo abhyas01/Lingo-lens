@@ -60,19 +60,23 @@ struct LanguageSelectionView: View {
             .accessibilityAddTraits(language.shortName() == tempSelectedLanguage.shortName() ? .isSelected : [])
             .contentShape(Rectangle())
             .onTapGesture {
+                print("👆 Selected language: \(language.localizedName()) (\(language.shortName()))")
                 tempSelectedLanguage = language
             }
         }
         
         // If languages change while view is open, update selection if needed
         .onChange(of: translationService.availableLanguages) {
+            print("🔄 Available languages list updated, count: \(translationService.availableLanguages.count)")
             if !translationService.availableLanguages.contains(where: { $0.shortName() == tempSelectedLanguage.shortName() }) {
+                print("⚠️ Previously selected language no longer available, updating selection")
                 tempSelectedLanguage = translationService.availableLanguages.first ?? tempSelectedLanguage
             }
         }
         
         // Reset temp language to match current selection on appear
         .onAppear {
+            print("📄 Language selection view appeared - current language: \(selectedLanguage.localizedName()) (\(selectedLanguage.shortName()))")
             tempSelectedLanguage = selectedLanguage
         }
         
@@ -83,13 +87,14 @@ struct LanguageSelectionView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
+                    print("👆 Button pressed: Cancel language selection")
                     dismiss()
                 }
             }
             
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
-                    print("✅ Confirming language selection: \(tempSelectedLanguage.shortName())")
+                    print("👆 Button pressed: Confirm language selection: \(tempSelectedLanguage.localizedName()) (\(tempSelectedLanguage.shortName()))")
                     isDownloading = true
                     downloadConfig = TranslationSession.Configuration(
                         source: translationService.sourceLanguage,
@@ -130,24 +135,29 @@ struct LanguageSelectionView: View {
         .translationTask(downloadConfig) { session in
             guard isDownloading else { return }
             
+            print("🔄 Preparing translation with language: \(tempSelectedLanguage.shortName())")
             do {
                 
                 // Try to prepare translation with selected language
                 try await session.prepareTranslation()
+                print("✅ Successfully prepared language: \(tempSelectedLanguage.shortName())")
             
                 await MainActor.run {
                     isDownloading = false
                     selectedLanguage = tempSelectedLanguage
+                    print("👍 Language selection confirmed and view dismissed")
                     dismiss()
                     downloadConfig = nil
                 }
             } catch {
-                
+                print("❌ Failed to prepare language \(tempSelectedLanguage.shortName()): \(error.localizedDescription)")
+
                 // Handle download failure
                 await MainActor.run {
                     isDownloading = false
                     showDownloadError = true
                     downloadConfig = nil
+                    print("⚠️ Showing download error alert for language: \(tempSelectedLanguage.shortName())")
                 }
             }
         }
