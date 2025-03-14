@@ -16,6 +16,10 @@ class CameraPermissionManager: ObservableObject {
     // Shows alert when camera access is denied/restricted or needs to be requested
     @Published var showPermissionAlert = false
     
+    // Properties for log throttling
+    private var lastLogTime: Date = Date.distantPast
+    private let logThrottleInterval: TimeInterval = 10.0
+    
     // MARK: - Permission Handling
 
     /// Checks current camera authorization status and updates UI accordingly
@@ -27,7 +31,12 @@ class CameraPermissionManager: ObservableObject {
         
         case .authorized:
             
-            print("✅ Camera access already granted")
+            // Throttle logging - only log if 5 seconds have passed
+            let now = Date()
+            if now.timeIntervalSince(lastLogTime) >= logThrottleInterval {
+                print("✅ Camera access already granted")
+                lastLogTime = now
+            }
 
             // Camera access already granted, clear any alert
             showPermissionAlert = false

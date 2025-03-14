@@ -61,9 +61,6 @@ struct ARTranslationView: View {
                     CameraPermissionView(
                         openSettings: {
                             cameraPermissionManager.openAppSettings()
-                        },
-                        recheckPermission: {
-                            cameraPermissionManager.checkPermission()
                         }
                     )
                 } else {

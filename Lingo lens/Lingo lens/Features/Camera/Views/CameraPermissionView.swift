@@ -13,7 +13,6 @@ struct CameraPermissionView: View {
     
     // Actions passed from parent view
     let openSettings: () -> Void
-    let recheckPermission: () -> Void
     
     var body: some View {
         VStack(spacing: 24) {
@@ -58,13 +57,6 @@ struct CameraPermissionView: View {
                 }
                 .accessibilityHint("Opens iOS Settings to enable camera access")
                 .padding(.horizontal, 32)
-                
-                // Secondary check again button
-                Button(action: recheckPermission) {
-                    Text("Check Again")
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
-                }
             }
             .padding(.top, 8)
         }
@@ -75,7 +67,6 @@ struct CameraPermissionView: View {
 
 #Preview {
     CameraPermissionView(
-        openSettings: {},
-        recheckPermission: {}
+        openSettings: {}
     )
 }
