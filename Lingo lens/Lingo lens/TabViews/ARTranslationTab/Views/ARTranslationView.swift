@@ -106,7 +106,7 @@ struct ARTranslationView: View {
         }
         .onAppear {
             isViewActive = true
-            cameraPermissionManager.checkPermission()
+            cameraPermissionManager.startChecking()
             
             // Setup AR session if permission is granted
             if !cameraPermissionManager.showPermissionAlert {
@@ -133,14 +133,21 @@ struct ARTranslationView: View {
             case .active:
                 
                 // Resume AR session when app becomes active
-                if isViewActive && !alreadyResumedARSession {
-                    if !cameraPermissionManager.showPermissionAlert {
-                        arViewModel.resetAnnotations()
-                        arViewModel.resumeARSession()
+                if isViewActive {
+                    cameraPermissionManager.startChecking()
+                    
+                    if !alreadyResumedARSession {
+                        if !cameraPermissionManager.showPermissionAlert {
+                            arViewModel.resetAnnotations()
+                            arViewModel.resumeARSession()
+                        }
                     }
                 }
+                
             case .background:
                 
+                cameraPermissionManager.stopChecking()
+
                 // Pause AR session when app goes to background
                 arViewModel.pauseARSession()
                 arViewModel.resetAnnotations()
@@ -155,7 +162,8 @@ struct ARTranslationView: View {
             }
         }
         .onDisappear {
-            
+            cameraPermissionManager.stopChecking()
+
             // Clean up when view disappears
             isViewActive = false
             arViewModel.pauseARSession()

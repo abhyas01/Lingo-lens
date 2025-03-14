@@ -18,13 +18,17 @@ class CameraPermissionManager: ObservableObject {
     
     // Properties for log throttling
     private var lastLogTime: Date = Date.distantPast
-    private let logThrottleInterval: TimeInterval = 10.0
+    private let logThrottleInterval: TimeInterval = 5
     
+    // Add a property to track if checking is active
+    private var isCheckingActive = false
+
     // MARK: - Permission Handling
 
     /// Checks current camera authorization status and updates UI accordingly
     /// Also sets up periodic rechecks if permission isn't granted
     func checkPermission() {
+        guard isCheckingActive else { return }
         
         // Check current permission status using AVFoundation
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -84,6 +88,17 @@ class CameraPermissionManager: ObservableObject {
                 self.checkPermission()
             }
         }
+    }
+    
+    // Start checking permissions
+    func startChecking() {
+        isCheckingActive = true
+        checkPermission()
+    }
+    
+    // Stop checking permissions
+    func stopChecking() {
+        isCheckingActive = false
     }
     
     // MARK: - Settings Navigation
