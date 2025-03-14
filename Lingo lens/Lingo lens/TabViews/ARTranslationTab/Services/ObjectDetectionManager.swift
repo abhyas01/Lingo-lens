@@ -59,11 +59,12 @@ class ObjectDetectionManager {
                              normalizedROI: CGRect,
                              completion: @escaping (String?) -> Void)
     {
-        
+        print("🔍 Starting object detection with ROI: \(normalizedROI)")
+
         // Make sure we have the ML model loaded
         guard let visionModel = visionModel else {
+            print("⚠️ Object detection model not available")
             DispatchQueue.main.async {
-                print("Object detection model is not available.")
                 ARErrorManager.shared.showError(
                     message: "Object detection model is not available. Please restart the app.",
                     retryAction: nil
@@ -80,6 +81,8 @@ class ObjectDetectionManager {
         // Convert normalized coordinates (0-1) to actual pixel coordinates
         let fullWidth = ciImage.extent.width
         let fullHeight = ciImage.extent.height
+        
+        print("📐 Image dimensions: \(fullWidth) x \(fullHeight), Orientation: \(exifOrientation)")
         
         let cropX = normalizedROI.origin.x * fullWidth
         let cropY = normalizedROI.origin.y * fullHeight
@@ -115,7 +118,8 @@ class ObjectDetectionManager {
         
         // Set up the ML request to detect objects in the image
         let request = VNCoreMLRequest(model: visionModel) { request, error in
-            if let _ = error {
+            if let error = error {
+                print("❌ Vision request failed: \(error.localizedDescription)")
                 completion(nil)
                 return
             }
@@ -125,10 +129,12 @@ class ObjectDetectionManager {
             guard let results = request.results as? [VNClassificationObservation],
                   let best = results.first,
                   best.confidence > 0.5 else {
+                print("ℹ️ No object detected with confidence > 0.5")
                 completion(nil)
                 return
             }
             
+            print("✅ Object detected: \"\(best.identifier)\" with confidence: \(best.confidence)")
             completion(best.identifier)
         }
         

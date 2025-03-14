@@ -39,6 +39,7 @@ class TranslationService: ObservableObject {
     /// - Parameter language: The language to check
     /// - Returns: True if language is downloaded, false otherwise
     func isLanguageDownloaded(language: AvailableLanguage) async -> Bool {
+        print("🔍 Checking if language is downloaded: \(language.shortName())")
         let availability = LanguageAvailability()
         let status = await availability.status(
             from: sourceLanguage,
@@ -51,12 +52,14 @@ class TranslationService: ObservableObject {
         case .installed:
             
             // Language is downloaded and ready to use
+            print("🔍 Language \(language.shortName()) download status: true")
             return true
             
         case .supported, .unsupported:
             
             // Language is either supported but not downloaded,
             // or not supported at all
+            print("🔍 Language \(language.shortName()) download status: false")
             return false
             
         @unknown default:
@@ -69,6 +72,7 @@ class TranslationService: ObservableObject {
     /// Fetches available languages from iOS translation system
     /// Populates the availableLanguages array with all supported translation languages
     func getSupportedLanguages() {
+        print("🌐 Loading supported languages...")
         isInitialLoading = true
         
         // Run language loading in background
@@ -76,6 +80,7 @@ class TranslationService: ObservableObject {
             
             // Get all languages supported by the device
             let supportedLanguages = await LanguageAvailability().supportedLanguages
+            print("🌐 Found \(supportedLanguages.count) supported languages")
             
             // Filter out English (since it's our source language)
             // and create our own AvailableLanguage objects
@@ -84,6 +89,7 @@ class TranslationService: ObservableObject {
                 .map { AvailableLanguage(locale: $0) }
                 .sorted()
             
+            print("🌐 Filtered to \(availableLanguages.count) available languages (excluding English)")
             isInitialLoading = false
         }
     }
@@ -96,10 +102,12 @@ class TranslationService: ObservableObject {
     ///   - session: Active translation session for the target language
     @MainActor
     func translate(text: String, using session: TranslationSession) async throws {
-        
+        print("🔄 Translating text: \"\(text)\"")
+
         // Use the Apple Translation framework to translate the text
         let response = try await session.translate(text)
         
+        print("✅ Translation result: \"\(response.targetText)\"")
         // Update our published property with the result
         translatedText = response.targetText
     }

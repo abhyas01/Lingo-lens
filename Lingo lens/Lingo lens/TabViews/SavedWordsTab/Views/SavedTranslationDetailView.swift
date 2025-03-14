@@ -220,6 +220,7 @@ struct SavedTranslationDetailView: View {
     /// Deletes the current translation from Core Data
     /// Handles error states and dismisses view on success
     private func deleteTranslation() {
+        print("🗑️ Deleting translation: \(translation.originalText ?? "unknown") -> \(translation.translatedText ?? "unknown")")
         isDeleting = true
         
         Task {
@@ -227,11 +228,13 @@ struct SavedTranslationDetailView: View {
                 
                 // Delete on main thread since it affects UI
                 await MainActor.run {
+                    print("🗑️ Removing translation from context: ID \(translation.id?.uuidString ?? "unknown")")
                     viewContext.delete(translation)
                 }
                 
                 // Save context to persist the deletion
                 try viewContext.save()
+                print("✅ Translation deleted and context saved")
                 
                 // Return to list view on successful delete
                 await MainActor.run {
@@ -239,7 +242,8 @@ struct SavedTranslationDetailView: View {
                     dismiss()
                 }
             } catch {
-                
+                print("❌ Failed to delete translation: \(error.localizedDescription)")
+
                 // Show error if deletion fails
                 await MainActor.run {
                     isDeleting = false

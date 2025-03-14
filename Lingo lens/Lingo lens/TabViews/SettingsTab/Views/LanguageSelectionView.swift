@@ -89,6 +89,7 @@ struct LanguageSelectionView: View {
             
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
+                    print("✅ Confirming language selection: \(tempSelectedLanguage.shortName())")
                     isDownloading = true
                     downloadConfig = TranslationSession.Configuration(
                         source: translationService.sourceLanguage,

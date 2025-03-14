@@ -35,6 +35,11 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         guard arViewModel.isDetectionActive,
               let sceneView = arViewModel.sceneView else { return }
         
+        // Only log occasionally to avoid flooding the console
+        if frame.timestamp.truncatingRemainder(dividingBy: 1.0) < 0.01 {
+            print("🎥 Processing AR frame at time: \(frame.timestamp)")
+        }
+        
         // Get the raw camera image
         let pixelBuffer = frame.capturedImage
         
@@ -78,7 +83,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     
     /// Handles AR session errors by showing a user-friendly error message
     func session(_ session: ARSession, didFailWithError error: Error) {
-        print("AR session error: \(error.localizedDescription)")
+        print("❌ AR session error: \(error.localizedDescription)")
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -110,6 +115,8 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         guard let sceneView = arViewModel.sceneView else { return }
         let location = gesture.location(in: sceneView)
         
+        print("👆 Tap detected at screen position: \(location)")
+
         // Track the closest annotation to handle overlapping annotations
         var closestAnnotation: (distance: CGFloat, text: String)? = nil
 
@@ -164,9 +171,12 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         
         // Show translation sheet for tapped annotation
         if let closest = closestAnnotation {
+            print("✅ Tapped on annotation: \"\(closest.text)\"")
             arViewModel.selectedAnnotationText = closest.text
             arViewModel.isShowingAnnotationDetail = true
             arViewModel.isDetectionActive = false
+        } else {
+            print("ℹ️ No annotation found at tap location")
         }
 
     }
@@ -176,6 +186,8 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         guard let sceneView = arViewModel.sceneView, gesture.state == .began else { return }
         
         let location = gesture.location(in: sceneView)
+        
+        print("👇 Long press detected at screen position: \(location)")
         
         // Track the closest annotation to handle overlapping annotations
         var closestAnnotation: (distance: CGFloat, index: Int, text: String)? = nil
@@ -210,11 +222,15 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         
         // Show delete confirmation for the annotation
         if let closest = closestAnnotation {
+            print("✅ Long-pressed on annotation: \"\(closest.text)\" at index \(closest.index)")
+
             arViewModel.isDetectionActive = false
             arViewModel.detectedObjectName = ""
             
             let textToShow = closest.text
             arViewModel.showDeleteAnnotationAlert(index: closest.index, objectName: textToShow)
+        } else {
+            print("ℹ️ No annotation found at long press location")
         }
     }
 

@@ -234,6 +234,7 @@ struct SavedTranslationsView: View {
     /// Handles swipe-to-delete functionality
     /// Removes translations from Core Data and handles error states
     private func deleteTranslations(at offsets: IndexSet) {
+        print("🗑️ Deleting translations at indices: \(offsets)")
         isDeleting = true
         
         Task {
@@ -242,18 +243,21 @@ struct SavedTranslationsView: View {
                 // Delete on main thread since it affects UI
                 await MainActor.run {
                     for offset in offsets {
+                        print("🗑️ Removing translation from context")
                         viewContext.delete(savedTranslations[offset])
                     }
                 }
                 
                 // Save context to persist the deletion
                 try viewContext.save()
+                print("✅ Translation deleted and context saved")
                 
                 await MainActor.run {
                     isDeleting = false
                 }
             } catch {
-                
+                print("❌ Failed to delete translation: \(error.localizedDescription)")
+
                 // Show error if deletion fails
                 await MainActor.run {
                     isDeleting = false

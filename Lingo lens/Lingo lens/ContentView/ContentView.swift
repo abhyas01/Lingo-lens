@@ -55,28 +55,37 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: selectedTab)
         .withCoreDataErrorHandling()
+        
         .onReceive(translationService.$availableLanguages) { languages in
+            print("🌐 Available languages updated: \(languages.count) languages available")
             if !languages.isEmpty {
                 arViewModel.updateSelectedLanguageFromUserDefaults(availableLanguages: languages)
                 showNoLanguagesAlert = false
             } else if !translationService.isInitialLoading {
+                print("⚠️ No languages available - showing alert")
                 showNoLanguagesAlert = true
             }
         }
+        
         .alert("No Languages Available", isPresented: $showNoLanguagesAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text("No translation languages are currently available. This may be due to network connectivity issues or Apple's translation service not being available. Please try again later or check if device translation services are enabled in Settings.")
         }
+        
         .onChange(of: selectedTab) { oldValue, newValue in
+            print("📑 Tab changed from \(oldValue) to \(newValue)")
             if newValue == .arTranslationView || newValue == .savedWordsView {
                 Task {
+                    print("🔊 Preparing audio session for tab: \(newValue)")
                     SpeechManager.shared.prepareAudioSession()
                 }
             } else if newValue == .settingsView {
+                print("🔇 Deactivating audio session for settings tab")
                 SpeechManager.shared.deactivateAudioSession()
             }
         }
+        
         .onAppear {
             if selectedTab == .arTranslationView || selectedTab == .savedWordsView {
                 Task {

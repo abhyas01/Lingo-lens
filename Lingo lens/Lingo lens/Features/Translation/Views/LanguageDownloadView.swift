@@ -297,6 +297,8 @@ struct LanguageDownloadView: View {
     /// Checks if the language has been downloaded
     /// Updates UI based on download status
     private func verifyLanguageDownloaded() {
+        print("🔍 Verifying if language \"\(language.shortName())\" is downloaded")
+
         Task {
             isVerifyingDownload = true
             let isDownloaded = await translationService.isLanguageDownloaded(language: language)
@@ -307,7 +309,11 @@ struct LanguageDownloadView: View {
                 downloadFailed = !isDownloaded
 
                 if isDownloaded {
+                    print("✅ Language \"\(language.shortName())\" is downloaded")
+
                     configuration = nil
+                } else {
+                    print("❌ Language \"\(language.shortName())\" is not downloaded")
                 }
             }
         }
@@ -315,6 +321,8 @@ struct LanguageDownloadView: View {
     
     /// Initiates the language download process
     private func startDownload() {
+        print("📥 Starting download for language: \"\(language.shortName())\"")
+
         isDownloading = true
         downloadFailed = false
         
@@ -326,9 +334,18 @@ struct LanguageDownloadView: View {
     
     /// Opens iOS Settings app to manually download the language
     private func openAppSettings() {
-        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
+        print("⚙️ Opening app settings for language download")
+
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
+            print("❌ Could not create settings URL")
+            return
+        }
+        
         if UIApplication.shared.canOpenURL(settingsUrl) {
             UIApplication.shared.open(settingsUrl)
+            print("✅ Opened settings app")
+        } else {
+            print("❌ Could not open settings app")
         }
     }
 

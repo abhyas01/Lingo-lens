@@ -64,6 +64,7 @@ class ARViewModel: ObservableObject {
     // Persists to UserDefaults when changed
     @Published var selectedLanguage: AvailableLanguage {
         didSet {
+            print("🌐 Selected language changed to: \(selectedLanguage.shortName())")
             DataManager.shared.saveSelectedLanguageCode(selectedLanguage.shortName())
         }
     }
@@ -132,8 +133,12 @@ class ARViewModel: ObservableObject {
     /// Removes an annotation from the AR scene
     /// Called when user confirms deletion
     func deleteAnnotation() {
-        guard let index = annotationToDelete, index < annotationNodes.count else { return }
+        guard let index = annotationToDelete, index < annotationNodes.count else {
+            print("⚠️ Invalid annotation index for deletion: \(String(describing: annotationToDelete))")
+            return
+        }
         
+        print("🗑️ Deleting annotation at index \(index)")
         isDeletingAnnotation = true
         
         // Small delay to show deletion is happening
@@ -142,10 +147,12 @@ class ARViewModel: ObservableObject {
             
             // Get the annotation and remove from scene
             let (node, _, _) = self.annotationNodes[index]
+            print("🗑️ Removing annotation from scene")
             node.removeFromParentNode()
             
             // Remove from our tracking array
             self.annotationNodes.remove(at: index)
+            print("✅ Annotation deleted successfully - \(self.annotationNodes.count) annotations remaining")
             
             // Reset state
             self.isDeletingAnnotation = false
@@ -165,12 +172,14 @@ class ARViewModel: ObservableObject {
 
     /// Pauses the AR session and stops object detection
     func pauseARSession() {
+        print("⏸️ Pausing AR session")
         isDetectionActive = false
         detectedObjectName = ""
         
         if let sceneView = sceneView {
             sceneView.session.pause()
             sessionState = .paused
+            print("✅ AR session paused")
         }
     }
 
@@ -179,6 +188,8 @@ class ARViewModel: ObservableObject {
     func resumeARSession() {
         guard let sceneView = sceneView else { return }
         
+        print("▶️ Resuming AR session")
+
         // Ensure session is paused before restarting
         if sessionState != .paused {
             sceneView.session.pause()
@@ -213,11 +224,15 @@ class ARViewModel: ObservableObject {
     func addAnnotation() {
         
         // Prevent multiple simultaneous adds
-        guard !isAddingAnnotation else { return }
+        guard !isAddingAnnotation else {
+            print("⚠️ Already adding an annotation - ignoring request")
+            return
+        }
         
         // Only add if we have a valid object name
         guard !detectedObjectName.isEmpty,
               !detectedObjectName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            print("⚠️ Cannot add annotation - no object detected")
             return
         }
         
@@ -225,10 +240,12 @@ class ARViewModel: ObservableObject {
         guard let sceneView = sceneView,
               sceneView.session.currentFrame != nil else { return }
         
+        print("➕ Adding annotation for object: \"\(detectedObjectName)\"")
         isAddingAnnotation = true
         
         // Use center of the yellow box as placement point
         let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
+        print("📍 Attempting to place annotation at screen position: \(roiCenter)")
         
         // Try to find a plane at that point using raycasting
         if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
@@ -282,10 +299,12 @@ class ARViewModel: ObservableObject {
     
     /// Removes all annotations from the scene
     func resetAnnotations() {
+        print("🧹 Clearing all annotations - count before reset: \(annotationNodes.count)")
         for (node, _, _) in annotationNodes {
             node.removeFromParentNode()
         }
         annotationNodes.removeAll()
+        print("✅ All annotations cleared")
     }
     
     // MARK: - Annotation Visuals

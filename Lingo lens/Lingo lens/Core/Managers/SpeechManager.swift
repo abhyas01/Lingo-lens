@@ -44,9 +44,14 @@ class SpeechManager: NSObject, ObservableObject {
     func prepareAudioSession() {
         
         // Skip if already prepared
-        guard !isAudioSessionPrepared else { return }
+        guard !isAudioSessionPrepared else {
+            print("🔊 Audio session already prepared - skipping")
+            return
+        }
         
         do {
+            print("🔊 Preparing audio session for speech playback")
+
             // Configure the audio session for speech playback
             try AVAudioSession.sharedInstance().setCategory(
                 .playback,
@@ -55,12 +60,12 @@ class SpeechManager: NSObject, ObservableObject {
             )
             try AVAudioSession.sharedInstance().setActive(true)
             isAudioSessionPrepared = true
-            print("Audio session prepared successfully")
+            print("✅ Audio session prepared successfully")
         } catch {
             // On failure not informing the user
             // Because preparation of audio session is only to enhance performance
             // so that its smooth when user taps on a label to hear pronunciation
-            print("Failed to configure audio session: \(error.localizedDescription)")
+            print("❌ Failed to configure audio session: \(error.localizedDescription)")
         }
     }
     
@@ -69,6 +74,8 @@ class SpeechManager: NSObject, ObservableObject {
     ///   - text: The text to speak
     ///   - languageCode: The language code (like "en-US" or "es-ES")
     func speak(text: String, languageCode: String) {
+        print("🗣️ Speaking text: \"\(text)\" in language: \(languageCode)")
+
         // Make sure audio session is ready
         prepareAudioSession()
         
@@ -81,19 +88,23 @@ class SpeechManager: NSObject, ObservableObject {
         
         // Get the base language code (like "en" from "en-US")
         let baseCode = languageCode.split(separator: "-").first ?? Substring("en")
+        print("🔍 Using base language code: \(baseCode)")
         
         // Try different approaches to find a voice for the language
         if let voice = AVSpeechSynthesisVoice(language: String(baseCode)) {
+            print("✅ Found voice for base language code: \(baseCode)")
             utterance.voice = voice
         } else {
             if let voice = AVSpeechSynthesisVoice(language: languageCode) {
+                print("✅ Found voice for full language code: \(languageCode)")
                 utterance.voice = voice
             } else if let fallbackVoice = AVSpeechSynthesisVoice(language: "en-US") {
                 
+                print("⚠️ No voice found for \(languageCode), using English fallback")
                 // Fall back to English if needed
                 utterance.voice = fallbackVoice
-                print("Voice not available for \(languageCode), using English fallback")
             } else {
+                print("❌ No voices available at all")
                 isLoading = false
                 SpeechErrorManager.shared.showError(
                     message: "Unable to play audio: No voices available",
@@ -138,6 +149,7 @@ extension SpeechManager: AVSpeechSynthesizerDelegate {
     
     // Called when speech starts
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        print("🔊 Speech started for text: \"\(utterance.speechString)\"")
         DispatchQueue.main.async {
             self.isLoading = false
             self.isSpeaking = true
@@ -146,6 +158,7 @@ extension SpeechManager: AVSpeechSynthesizerDelegate {
     
     // Called when speech finishes normally
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        print("✅ Speech finished for text: \"\(utterance.speechString)\"")
         DispatchQueue.main.async {
             self.isSpeaking = false
         }

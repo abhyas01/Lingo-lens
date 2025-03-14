@@ -218,11 +218,13 @@ struct SavedWords: View {
     /// Loads all unique languages used in saved translations
     /// Populates the language filter dropdown menu
     private func loadAvailableLanguages() {
+        print("🔍 Loading available languages for filter")
         isLoadingLanguages = true
         
         Task {
             do {
                 
+                print("📊 Creating fetch request (unique languages) for filter")
                 // Create a fetch request that only gets language info
                 let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SavedTranslation.fetchRequest() as! NSFetchRequest<NSFetchRequestResult>
                 
@@ -239,6 +241,8 @@ struct SavedWords: View {
                     try fetchRequest.execute() as? [[String: Any]] ?? []
                 }
                 
+                print("✅ Found \(results.count) unique languages")
+
                 // Convert results to language filter objects
                 var languages = [LanguageFilter]()
                 
@@ -256,11 +260,13 @@ struct SavedWords: View {
                 // Update UI on main thread
                 await MainActor.run {
                     availableLanguages = languages
+                    print("✅ Updated language filter with \(languages.count) languages")
                     isLoadingLanguages = false
                 }
                 
             } catch {
-                
+                print("❌ Failed to load language filters: \(error.localizedDescription)")
+
                 // Handle any errors during loading
                 await MainActor.run {
                     isLoadingLanguages = false

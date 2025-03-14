@@ -109,10 +109,12 @@ struct PersistenceController {
         let context = container.viewContext
         if context.hasChanges {
             do {
+                print("💾 Saving Core Data context with changes")
                 try context.save()
+                print("✅ Core Data context saved successfully")
             } catch {
                 let nserror = error as NSError
-                print("CoreData failed to save context: \(nserror), \(nserror.userInfo)")
+                print("❌ Failed to save Core Data context: \(nserror), \(nserror.userInfo)")
                 
                 // Notify the app about database save errors
                 NotificationCenter.default.post(
@@ -121,6 +123,8 @@ struct PersistenceController {
                     userInfo: ["error": nserror]
                 )
             }
+        } else {
+            print("ℹ️ No Core Data changes to save")
         }
     }
 }

@@ -54,6 +54,7 @@ class AppearanceManager: ObservableObject {
     // The user's selected color scheme, automatically saved when changed
     @Published var colorSchemeOption: ColorSchemeOption {
         didSet {
+            print("🎨 Color scheme changed to: \(colorSchemeOption.title)")
             DataManager.shared.saveColorSchemeOption(colorSchemeOption.rawValue)
         }
     }
