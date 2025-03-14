@@ -326,6 +326,7 @@ struct AnnotationDetailView: View {
     private func checkIfAlreadySaved() {
         guard !translatedText.isEmpty, !originalText.isEmpty else { return }
         
+        print("🔍 Checking if translation is already saved - Original: \"\(originalText)\", Translated: \"\(translatedText)\"")
         isCheckingSavedStatus = true
         
         // Build query to find matching translations
@@ -336,15 +337,21 @@ struct AnnotationDetailView: View {
         )
         fetchRequest.fetchLimit = 1
         
+        print("🔍 Running Core Data query with predicate: originalText == \"\(originalText)\" AND translatedText == \"\(translatedText)\" AND languageCode == \"\(targetLanguage.shortName())\"")
+        
         Task {
             do {
                 let matches = try viewContext.fetch(fetchRequest)
-                
+                print("🔍 Found \(matches.count) matching translation(s) in Core Data")
+
                 await MainActor.run {
                     isAlreadySaved = !matches.isEmpty
                     isCheckingSavedStatus = false
+                    print("🔍 Translation already saved status: \(isAlreadySaved)")
                 }
             } catch {
+                print("❌ Failed to check saved status: \(error.localizedDescription)")
+
                 await MainActor.run {
                     isCheckingSavedStatus = false
                     showCoreDataErrorAlert(message: "Unable to check if this translation is already saved. Please try again.")
@@ -356,11 +363,14 @@ struct AnnotationDetailView: View {
     /// Saves the current translation to CoreData
     /// Updates UI states for success/failure
     private func saveTranslation() {
+        print("👆 Button pressed: Save translation - Original: \"\(originalText)\", Translated: \"\(translatedText)\"")
         isSavingTranslation = true
         
         Task {
             do {
                 await MainActor.run {
+                    print("💾 Creating new SavedTranslation in Core Data - ID: \(UUID())")
+
                     let newTranslation = SavedTranslation(context: viewContext)
                     
                     newTranslation.id = UUID()
@@ -369,11 +379,15 @@ struct AnnotationDetailView: View {
                     newTranslation.languageCode = targetLanguage.shortName()
                     newTranslation.languageName = targetLanguage.localizedName()
                     newTranslation.dateAdded = Date()
+                    
+                    print("📝 Translation details - Language: \(targetLanguage.shortName()), Original: \"\(originalText)\", Translated: \"\(translatedText)\"")
                 }
                 
                 try viewContext.save()
                 
                 await MainActor.run {
+                    print("✅ Successfully saved translation to Core Data")
+
                     isSavingTranslation = false
                     withAnimation {
                         showSavedConfirmation = true
@@ -388,6 +402,8 @@ struct AnnotationDetailView: View {
                     }
                 }
             } catch {
+                print("❌ Failed to save translation: \(error.localizedDescription)")
+                
                 await MainActor.run {
                     isSavingTranslation = false
                     showCoreDataErrorAlert(message: "Unable to save translation. Please try again later.")
@@ -435,6 +451,8 @@ struct AnnotationDetailView: View {
     
     /// Speaks the translated text using SpeechManager
     private func speakTranslation() {
+        print("👆 Button pressed: Speak translation - Text: \"\(translatedText)\", Language: \(targetLanguage.shortName())")
+
         SpeechManager.shared.speak(
             text: translatedText,
             languageCode: targetLanguage.shortName()
@@ -453,6 +471,8 @@ struct AnnotationDetailView: View {
     
     /// Opens system settings to manage translation downloads
     private func openAppSettings() {
+        print("👆 Button pressed: Open app settings to manage translation downloads")
+
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
         if UIApplication.shared.canOpenURL(settingsUrl) {
             UIApplication.shared.open(settingsUrl)
@@ -466,18 +486,25 @@ struct AnnotationDetailView: View {
             if shouldTranslate, let config = configuration {
                 Text("")
                     .translationTask(config) { session in
+                        print("🔄 Starting translation task for: \"\(originalText)\" - Source: \(translationService.sourceLanguage.languageCode ?? "unknown"), Target: \(targetLanguage.shortName())")
+
                         do {
+                            print("🔄 Executing translation with Apple Translation API")
+
                             try await translationService.translate(text: originalText, using: session)
                             translatedText = translationService.translatedText
                             translationError = false
                         
+                            print("✅ Translation successful: \"\(originalText)\" → \"\(translatedText)\"")
                             checkIfAlreadySaved()
                         } catch {
+                            print("❌ Translation failed with error: \(error.localizedDescription)")
                             translatedText = "Translation failed. Try downloading the language."
                             translationError = true
                         }
                         isTranslating = false
                         shouldTranslate = false
+                        print("🔄 Translation task completed - Success: \(!translationError)")
                     }
             }
         }

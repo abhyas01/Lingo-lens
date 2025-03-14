@@ -255,17 +255,24 @@ struct ControlBar: View {
             if isPreparingLanguage, let config = downloadConfig {
                 Text("")
                     .translationTask(config) { session in
+                        print("🔄 Starting translation task to prepare language: \(arViewModel.selectedLanguage.shortName())")
+
                         do {
-                            
+                            print("🔄 Executing prepareTranslation() for language: \(arViewModel.selectedLanguage.shortName())")
+
                             // Prepare the translation system
                             try await session.prepareTranslation()
-                            
+
+                            print("✅ Successfully prepared translation session for language: \(arViewModel.selectedLanguage.shortName())")
+
                             await MainActor.run {
                                 isPreparingLanguage = false
                                 downloadConfig = nil
+                                print("🔄 Starting detection after successful language preparation")
                                 startDetection()
                             }
                         } catch {
+                            print("❌ Failed to prepare translation session: \(error.localizedDescription)")
                             await MainActor.run {
                                 isPreparingLanguage = false
                                 downloadConfig = nil
