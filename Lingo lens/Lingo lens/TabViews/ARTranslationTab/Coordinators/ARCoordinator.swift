@@ -67,15 +67,30 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         if nx + nw > 1 { nw = 1 - nx }
         if ny + nh > 1 { nh = 1 - ny }
         
+        // Create a normalized ROI rect that will be captured
+        let normalizedROI = CGRect(x: nx, y: ny, width: nw, height: nh)
+         
+        // Detach the processing from the ARFrame by using a separate method
+        processFrameData(pixelBuffer: pixelBuffer,
+                          exifOrientation: exifOrientation,
+                          normalizedROI: normalizedROI)
+    }
+    
+    // Helper method that doesn't retain the ARFrame
+    private func processFrameData(pixelBuffer: CVPixelBuffer,
+                                 exifOrientation: CGImagePropertyOrientation,
+                                 normalizedROI: CGRect) {
+        
         // Send the cropped region to object detection manager
         objectDetectionManager.detectObjectCropped(
             pixelBuffer: pixelBuffer,
             exifOrientation: exifOrientation,
-            normalizedROI: CGRect(x: nx, y: ny, width: nw, height: nh)
-        ) { result in
+            normalizedROI: normalizedROI
+        ) { [weak self] result in
             
-            // Update the UI with detection result on main thread
+            // Update the UI with detection result on main thread using weak self
             DispatchQueue.main.async {
+                guard let self = self else { return }
                 self.arViewModel.detectedObjectName = result ?? ""
             }
         }
