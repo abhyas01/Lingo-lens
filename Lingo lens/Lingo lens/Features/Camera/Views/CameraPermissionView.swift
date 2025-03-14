@@ -7,20 +7,25 @@
 
 import SwiftUI
 
+/// View displayed when camera permission is needed
+/// Guides users to enable camera access with visual instructions
 struct CameraPermissionView: View {
+    
+    // Actions passed from parent view
     let openSettings: () -> Void
     let recheckPermission: () -> Void
     
     var body: some View {
         VStack(spacing: 24) {
             
+            // Camera icon at the top
             Image(systemName: "camera.circle.fill")
                 .font(.system(size: 80))
                 .foregroundColor(.blue)
                 .padding(.bottom, 16)
                 .accessibilityHidden(true)
             
-            
+            // Header and explanation text section
             VStack(spacing: 16) {
                 Text("Camera Access Required")
                     .font(.title2.bold())
@@ -35,7 +40,10 @@ struct CameraPermissionView: View {
                     .accessibilityLabel("Camera access is required for object detection and translation")
             }
             
+            // Action buttons section
             VStack(spacing: 12) {
+                
+                // Main settings button
                 Button(action: openSettings) {
                     HStack(spacing: 8) {
                         Image(systemName: "gearshape.fill")
@@ -51,6 +59,7 @@ struct CameraPermissionView: View {
                 .accessibilityHint("Opens iOS Settings to enable camera access")
                 .padding(.horizontal, 32)
                 
+                // Secondary check again button
                 Button(action: recheckPermission) {
                     Text("Check Again")
                         .font(.subheadline)

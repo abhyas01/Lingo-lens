@@ -7,15 +7,17 @@
 
 import SwiftUI
 
-/// Manages state and animations for the expandable settings panel
+/// Small view model to handle the expandable settings panel in the AR view
+/// Controls animation and expansion state of the settings drawer
 class SettingsViewModel: ObservableObject {
     
-    /// Tracks whether settings panel is expanded from bottom of screen
+    // Tracks whether the settings panel is currently expanded
     @Published var isExpanded = false
     
     // MARK: - Panel Animation
 
-    /// Toggles settings panel with spring animation for smooth expansion/collapse
+    /// Toggles the settings panel with a smooth spring animation
+    /// Used when user taps the settings button in the AR view
     func toggleExpanded() {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
             isExpanded.toggle()

@@ -9,28 +9,55 @@ import SwiftUI
 import ARKit
 import AVFoundation
 
+/// Main view for AR translation feature
+/// Manages camera permission, AR session, detection box, and child views
 struct ARTranslationView: View {
+    
+    // Tracks app state changes (foreground/background)
     @Environment(\.scenePhase) private var scenePhase
+    
+    // Main view model that handles AR state and logic
     @ObservedObject var arViewModel: ARViewModel
+    
+    // View model for expanding/collapsing settings panel
     @StateObject private var settingsViewModel = SettingsViewModel()
+    
+    // Manages camera permission requests and state
     @StateObject private var cameraPermissionManager = CameraPermissionManager()
     
+    // Tracks previous screen size for adjusting ROI on rotation
     @State private var previousSize: CGSize = .zero
+    
+    // Controls visibility of instructions sheet
     @State private var showInstructions = false
+    
+    // Prevents redundant AR session resumes
     @State private var alreadyResumedARSession = false
+    
+    // Controls alert about label reset when tab changes
     @State private var showAlertAboutReset = false
+    
+    // Tracks if view is currently visible
     @State private var isViewActive = false
+    
+    // Remembers user preference to not show reset warning
     @State private var neverShowAlertAboutReset: Bool = DataManager.shared.getNeverShowLabelRemovalWarning()
     
+    // For handling device orientation changes
     @State private var currentOrientation = UIDevice.current.orientation
+    
+    // Loading state for AR session
     @State private var isARSessionLoading = true
 
+    // Access to translation service
     @EnvironmentObject var translationService: TranslationService
 
     var body: some View {
         NavigationStack {
             Group {
                 if cameraPermissionManager.showPermissionAlert {
+                    
+                    // Show permission view if camera access not granted
                     CameraPermissionView(
                         openSettings: {
                             cameraPermissionManager.openAppSettings()
@@ -41,6 +68,8 @@ struct ARTranslationView: View {
                     )
                 } else {
                     if isARSessionLoading {
+                        
+                        // Loading state while AR session initializes
                         ZStack {
                             Color.black.edgesIgnoringSafeArea(.all)
                             ProgressView()
@@ -49,6 +78,8 @@ struct ARTranslationView: View {
                         }
                         .transition(.opacity)
                     } else {
+                        
+                        // Main AR view when everything is ready
                         mainARView
                             .withARErrorHandling()
                     }
@@ -60,6 +91,8 @@ struct ARTranslationView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
+                    
+                    // Info button to show instructions
                     Button(action: {
                         arViewModel.isDetectionActive = false
                         arViewModel.detectedObjectName = ""
@@ -77,11 +110,15 @@ struct ARTranslationView: View {
         .onAppear {
             isViewActive = true
             cameraPermissionManager.checkPermission()
+            
+            // Setup AR session if permission is granted
             if !cameraPermissionManager.showPermissionAlert {
                 DispatchQueue.main.async {
                     arViewModel.resetAnnotations()
                     arViewModel.resumeARSession()
                     alreadyResumedARSession = true
+                    
+                    // Hide loading screen after a short delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             isARSessionLoading = false
@@ -92,9 +129,13 @@ struct ARTranslationView: View {
             
             setupOrientationObserver()
         }
+        
+        // Handle app state changes (background/foreground)
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
             case .active:
+                
+                // Resume AR session when app becomes active
                 if isViewActive && !alreadyResumedARSession {
                     if !cameraPermissionManager.showPermissionAlert {
                         arViewModel.resetAnnotations()
@@ -102,10 +143,13 @@ struct ARTranslationView: View {
                     }
                 }
             case .background:
+                
+                // Pause AR session when app goes to background
                 arViewModel.pauseARSession()
                 arViewModel.resetAnnotations()
                 alreadyResumedARSession = false
                 
+                // Show reset warning unless disabled
                 if !neverShowAlertAboutReset {
                     showAlertAboutReset = true
                 }
@@ -114,103 +158,43 @@ struct ARTranslationView: View {
             }
         }
         .onDisappear {
+            
+            // Clean up when view disappears
             isViewActive = false
             arViewModel.pauseARSession()
             arViewModel.resetAnnotations()
             
+            // Show reset warning unless disabled
             if !neverShowAlertAboutReset {
                 showAlertAboutReset = true
             }
             
+            // Remove orientation observer
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         }
     }
-
-    private func setupOrientationObserver() {
-        NotificationCenter.default.addObserver(
-            forName: UIDevice.orientationDidChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [self] _ in
-            let newOrientation = UIDevice.current.orientation
-            if newOrientation.isValidInterfaceOrientation && newOrientation != currentOrientation {
-                currentOrientation = newOrientation
-                
-                if let sceneView = arViewModel.sceneView {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        let oldContainerSize = previousSize
-                        let newContainerSize = sceneView.bounds.size
-
-                        guard abs(oldContainerSize.width - newContainerSize.width) > 1 ||
-                              abs(oldContainerSize.height - newContainerSize.height) > 1 else {
-                            return
-                        }
-
-                        let margin: CGFloat = 16
-
-                        let currentROI = arViewModel.adjustableROI
-                        let relativeX = (currentROI.midX - margin) / (oldContainerSize.width - 2 * margin)
-                        let relativeY = (currentROI.midY - margin) / (oldContainerSize.height - 2 * margin)
-
-                        let maxWidth = newContainerSize.width - (2 * margin)
-                        let maxHeight = newContainerSize.height - (2 * margin)
-                        
-                        let scaleRatio = min(maxWidth / maxHeight, 1.0)
-                        let newWidth = min(currentROI.width * scaleRatio, maxWidth)
-                        let newHeight = min(currentROI.height * scaleRatio, maxHeight)
-
-                        let newMidX = margin + (relativeX * (newContainerSize.width - 2 * margin))
-                        let newMidY = margin + (relativeY * (newContainerSize.height - 2 * margin))
-                        
-                        let newOriginX = newMidX - (newWidth / 2)
-                        let newOriginY = newMidY - (newHeight / 2)
-
-                        var newROI = CGRect(
-                            x: newOriginX,
-                            y: newOriginY,
-                            width: newWidth,
-                            height: newHeight
-                        )
-
-                        newROI = enforceMarginConstraints(newROI, in: newContainerSize)
-                        
-                        arViewModel.adjustableROI = newROI
-                        previousSize = newContainerSize
-                    }
-                }
-            }
-        }
-    }
     
-    private func enforceMarginConstraints(_ rect: CGRect, in containerSize: CGSize) -> CGRect {
-        let margin: CGFloat = 16
-        let minBoxSize: CGFloat = 100
-        
-        var newRect = rect
-        
-        newRect.size.width = max(minBoxSize, min(newRect.size.width, containerSize.width - (2 * margin)))
-        newRect.size.height = max(minBoxSize, min(newRect.size.height, containerSize.height - (2 * margin)))
-        
-        newRect.origin.x = max(margin, min(newRect.origin.x, containerSize.width - newRect.size.width - margin))
-        newRect.origin.y = max(margin, min(newRect.origin.y, containerSize.height - newRect.size.height - margin))
-        
-        return newRect
-    }
-    
+    /// Main AR view that contains camera feed, detection UI, and controls
     private var mainARView: some View {
         ZStack {
+            
+            // AR camera view container
             ARViewContainer(arViewModel: arViewModel)
             
+            // Detection box overlay (only shown when detection is active)
             if arViewModel.isDetectionActive {
                 boundingBoxView
             }
             
             VStack {
+                
+                // Top section - shows detection status
                 if arViewModel.isDetectionActive {
                     DetectionLabel(detectedObjectName: arViewModel.detectedObjectName)
                         .padding(.top, 10)
                 }
                 
+                // Error message when annotation placement fails
                 if arViewModel.showPlacementError {
                     Text(arViewModel.placementErrorMessage)
                         .font(.callout)
@@ -226,12 +210,14 @@ struct ARTranslationView: View {
                 
                 Spacer()
                 
+                // Bottom control bar
                 ControlBar(
                     arViewModel: arViewModel,
                     settingsViewModel: settingsViewModel
                 )
             }
             
+            // Overlay when deleting an annotation
             if arViewModel.isDeletingAnnotation {
                 ZStack {
                     Color.black.opacity(0.3)
@@ -256,6 +242,7 @@ struct ARTranslationView: View {
                 .zIndex(100)
             }
             
+            // Settings panel (slides up from bottom)
             if settingsViewModel.isExpanded {
                 SettingsPanel(
                     arViewModel: arViewModel,
@@ -263,6 +250,8 @@ struct ARTranslationView: View {
                 )
             }
         }
+        
+        // Alert about label removal when leaving tab
         .alert("Label Removal Warning", isPresented: $showAlertAboutReset) {
             Button("Ok") {}
             Button("Don't Warn Again", role: .cancel) {
@@ -273,6 +262,7 @@ struct ARTranslationView: View {
             Text("Whenever you leave the Translate tab, all labels will be removed from the objects in the real world.")
         }
         
+        // Alert to confirm annotation deletion
         .alert("Remove Label", isPresented: $arViewModel.showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
                 arViewModel.annotationToDelete = nil
@@ -284,12 +274,15 @@ struct ARTranslationView: View {
             Text("Remove the \"\(arViewModel.annotationNameToDelete)\" label?")
         }
         
+        // Smooth animation for error messages
         .animation(.easeInOut, value: arViewModel.showPlacementError)
         
+        // Instructions sheet
         .sheet(isPresented: $showInstructions) {
             InstructionsView()
         }
         
+        // Annotation detail sheet (shows translation)
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {
             if let originalText = arViewModel.selectedAnnotationText {
                 AnnotationDetailView(
@@ -301,10 +294,13 @@ struct ARTranslationView: View {
         }
     }
     
+    /// View that handles the draggable detection box
     private var boundingBoxView: some View {
         GeometryReader { geo in
             Color.clear
                 .onAppear {
+                    
+                    // Initial setup of detection box in center of screen
                     if arViewModel.adjustableROI == .zero {
                         let boxSize: CGFloat = 200
                         let margin: CGFloat = 16
@@ -322,11 +318,13 @@ struct ARTranslationView: View {
                     previousSize = geo.size
                 }
                 
+                // Handle container size changes (like rotation)
                 .onChange(of: geo.size) { oldSize, newSize in
                     guard abs(oldSize.width - newSize.width) > 1 || abs(oldSize.height - newSize.height) > 1 else {
                         return
                     }
 
+                    // Resize and reposition the detection box
                     let adjustedROI = arViewModel.adjustableROI.resizedAndClamped(from: oldSize, to: newSize)
                     let constrainedROI = enforceMarginConstraints(adjustedROI, in: newSize)
                     
@@ -335,48 +333,146 @@ struct ARTranslationView: View {
                     previousSize = newSize
                 }
             
+            // The actual draggable/resizable box
             AdjustableBoundingBox(
                 roi: $arViewModel.adjustableROI,
                 containerSize: geo.size
             )
         }
     }
-}
+    
+    /// Sets up observer for device orientation changes
+    /// Adjusts detection box when orientation changes
+    private func setupOrientationObserver() {
+        NotificationCenter.default.addObserver(
+            forName: UIDevice.orientationDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [self] _ in
+            let newOrientation = UIDevice.current.orientation
+            if newOrientation.isValidInterfaceOrientation && newOrientation != currentOrientation {
+                currentOrientation = newOrientation
+                
+                if let sceneView = arViewModel.sceneView {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        let oldContainerSize = previousSize
+                        let newContainerSize = sceneView.bounds.size
 
-struct ARTranslationView_Previews: PreviewProvider {
-    static var previews: some View {
-        
-        let mockTranslationService = TranslationService()
-        mockTranslationService.availableLanguages = [
-            AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES")),
-            AvailableLanguage(locale: Locale.Language(languageCode: "fr", region: "FR")),
-            AvailableLanguage(locale: Locale.Language(languageCode: "de", region: "DE"))
-        ]
-        
-        let arViewModel = ARViewModel()
-        
-        return Group {
-            ARTranslationView(arViewModel: arViewModel)
-                .environmentObject(mockTranslationService)
-                .previewDisplayName("Normal State")
-            
-            ARTranslationView(arViewModel: arViewModel)
-                .environmentObject(mockTranslationService)
-                .onAppear {
-                    let viewModel = ARViewModel()
-                    viewModel.isDetectionActive = true
-                    viewModel.detectedObjectName = "Coffee Cup"
-                    viewModel.adjustableROI = CGRect(x: 100, y: 100, width: 200, height: 200)
+                        // Only adjust if size changed significantly
+                        guard abs(oldContainerSize.width - newContainerSize.width) > 1 ||
+                              abs(oldContainerSize.height - newContainerSize.height) > 1 else {
+                            return
+                        }
+
+                        let margin: CGFloat = 16
+
+                        // Calculate relative position to maintain proportional placement
+                        let currentROI = arViewModel.adjustableROI
+                        let relativeX = (currentROI.midX - margin) / (oldContainerSize.width - 2 * margin)
+                        let relativeY = (currentROI.midY - margin) / (oldContainerSize.height - 2 * margin)
+
+                        let maxWidth = newContainerSize.width - (2 * margin)
+                        let maxHeight = newContainerSize.height - (2 * margin)
+                        
+                        // Calculate new size while maintaining aspect ratio
+                        let scaleRatio = min(maxWidth / maxHeight, 1.0)
+                        let newWidth = min(currentROI.width * scaleRatio, maxWidth)
+                        let newHeight = min(currentROI.height * scaleRatio, maxHeight)
+
+                        // Calculate new position based on relative coordinates
+                        let newMidX = margin + (relativeX * (newContainerSize.width - 2 * margin))
+                        let newMidY = margin + (relativeY * (newContainerSize.height - 2 * margin))
+                        
+                        let newOriginX = newMidX - (newWidth / 2)
+                        let newOriginY = newMidY - (newHeight / 2)
+
+                        var newROI = CGRect(
+                            x: newOriginX,
+                            y: newOriginY,
+                            width: newWidth,
+                            height: newHeight
+                        )
+
+                        // Ensure box stays within screen margins
+                        newROI = enforceMarginConstraints(newROI, in: newContainerSize)
+                        
+                        arViewModel.adjustableROI = newROI
+                        previousSize = newContainerSize
+                    }
                 }
-                .previewDisplayName("Active Detection")
-            
-            ARTranslationView(arViewModel: arViewModel)
-                .environmentObject(mockTranslationService)
-                .onAppear {
-                    let settingsVM = SettingsViewModel()
-                    settingsVM.isExpanded = true
-                }
-                .previewDisplayName("Settings Expanded")
+            }
         }
     }
+    
+    /// Ensures detection box stays within screen margins
+    /// Enforces minimum size and maximum boundaries
+    private func enforceMarginConstraints(_ rect: CGRect, in containerSize: CGSize) -> CGRect {
+        let margin: CGFloat = 16
+        let minBoxSize: CGFloat = 100
+        
+        var newRect = rect
+        
+        // Enforce minimum and maximum width
+        newRect.size.width = max(minBoxSize, min(newRect.size.width, containerSize.width - (2 * margin)))
+        newRect.size.height = max(minBoxSize, min(newRect.size.height, containerSize.height - (2 * margin)))
+        
+        // Enforce margin constraints for origin
+        newRect.origin.x = max(margin, min(newRect.origin.x, containerSize.width - newRect.size.width - margin))
+        newRect.origin.y = max(margin, min(newRect.origin.y, containerSize.height - newRect.size.height - margin))
+        
+        return newRect
+    }
+}
+
+#Preview("Normal State") {
+    let mockTranslationService = TranslationService()
+    mockTranslationService.availableLanguages = [
+        AvailableLanguage(locale: .init(languageCode: "es", region: "ES")),
+        AvailableLanguage(locale: .init(languageCode: "fr", region: "FR")),
+        AvailableLanguage(locale: .init(languageCode: "de", region: "DE"))
+    ]
+    
+    let arVM = ARViewModel()
+    
+    return ARTranslationView(arViewModel: arVM)
+        .environmentObject(mockTranslationService)
+        .environmentObject(AppearanceManager())
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+}
+
+#Preview("Active Detection") {
+    let mockTranslationService = TranslationService()
+    mockTranslationService.availableLanguages = [
+        AvailableLanguage(locale: .init(languageCode: "es", region: "ES")),
+        AvailableLanguage(locale: .init(languageCode: "fr", region: "FR")),
+        AvailableLanguage(locale: .init(languageCode: "de", region: "DE"))
+    ]
+    
+    let arVM = ARViewModel()
+    arVM.isDetectionActive = true
+    arVM.detectedObjectName = "Coffee Cup"
+    arVM.adjustableROI = CGRect(x: 100, y: 100, width: 200, height: 200)
+    
+    return ARTranslationView(arViewModel: arVM)
+        .environmentObject(mockTranslationService)
+        .environmentObject(AppearanceManager())
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+}
+
+#Preview("Settings Expanded") {
+    let mockTranslationService = TranslationService()
+    mockTranslationService.availableLanguages = [
+        AvailableLanguage(locale: .init(languageCode: "es", region: "ES")),
+        AvailableLanguage(locale: .init(languageCode: "fr", region: "FR")),
+        AvailableLanguage(locale: .init(languageCode: "de", region: "DE"))
+    ]
+    
+    let arVM = ARViewModel()
+    let settingsVM = SettingsViewModel()
+    settingsVM.isExpanded = true
+    
+    return ARTranslationView(arViewModel: arVM)
+        .environmentObject(mockTranslationService)
+        .environmentObject(AppearanceManager())
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+/// Panel that shows settings options in the AR view
+/// Slides up from bottom when settings button is tapped
 struct SettingsPanel: View {
     @ObservedObject var arViewModel: ARViewModel
     @ObservedObject var settingsViewModel: SettingsViewModel
@@ -14,6 +16,8 @@ struct SettingsPanel: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
+                
+                // Header with title and close button
                 HStack {
                     Text("Label Settings")
                         .font(.headline)
@@ -29,6 +33,7 @@ struct SettingsPanel: View {
                 }
                 .padding(.bottom)
                 
+                // Main settings options
                 VStack(alignment: .leading, spacing: 16) {
                     annotationSizeSection
                     clearAnnotationsButton
@@ -38,10 +43,14 @@ struct SettingsPanel: View {
             .background(.regularMaterial)
             .cornerRadius(15)
             .frame(width: 300)
+            
+            // Position panel at bottom of screen
             .position(
                 x: 165,
                 y: geometry.size.height - geometry.safeAreaInsets.bottom - 100
             )
+            
+            // Smooth slide-up animation
             .transition(.asymmetric(
                 insertion: .opacity.combined(with: .offset(x: 0, y: 50)),
                 removal: .opacity.combined(with: .offset(x: 0, y: 50))
@@ -49,11 +58,13 @@ struct SettingsPanel: View {
         }
     }
     
+    // Slider to adjust annotation size
     private var annotationSizeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Label Size")
                 .foregroundStyle(.primary)
 
+            // Slider that directly updates annotation scale in view model
             Slider(value: $arViewModel.annotationScale,
                    in: 0.2...5.0,
                    step: 0.1)
@@ -64,6 +75,7 @@ struct SettingsPanel: View {
         }
     }
     
+    // Button to remove all placed annotations
     private var clearAnnotationsButton: some View {
         Button(action: {
             arViewModel.resetAnnotations()

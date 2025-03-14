@@ -8,8 +8,11 @@
 import SwiftUI
 import CoreData
 
+/// Main container view for the "Saved Words" tab
+/// Handles filtering, sorting and displaying the user's saved translations
 struct SavedWords: View {
     
+    /// Sort options for the saved translations list
     enum SortOption: String, CaseIterable, Identifiable {
         var id: String { self.rawValue }
         case dateCreated = "Date Added"
@@ -17,30 +20,46 @@ struct SavedWords: View {
         case translatedText = "Translated Word"
     }
     
+    /// Sort direction options (ascending or descending)
     enum SortOrder: String, CaseIterable, Identifiable {
         var id: String { self.rawValue }
         case ascending = "Ascending"
         case descending = "Descending"
     }
     
+    // MARK: - State Properties
+
+    // Search text entered by the user
     @State private var query: String = ""
+    
+    // Current sort settings
     @State private var sortOption: SortOption = .dateCreated
     @State private var sortOrder: SortOrder = .descending
+    
+    // Currently selected language filter
     @State private var selectedLanguageCode: String? = nil
+    
+    // List of available languages for filtering
     @State private var availableLanguages: [LanguageFilter] = []
     
+    // Loading and error states
     @State private var isLoadingLanguages: Bool = false
     @State private var showLanguageLoadError: Bool = false
     @State private var languageLoadErrorMessage: String = ""
     
+    // Core Data context for database operations
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
+        
+        // Split view with list on left, details on right for larger screens
         NavigationSplitView {
             contentView
         } detail: {
             detailPlaceholderView
         }
+        
+        // Error alert for language filter loading failures
         .alert("Error Loading Languages", isPresented: $showLanguageLoadError) {
             Button("OK", role: .cancel) { }
             Button("Try Again") {
@@ -51,10 +70,13 @@ struct SavedWords: View {
         }
     }
     
-    // MARK: - Extracted Views
+    // MARK: - View Components
     
+    /// Main content view with search, filters and translations list
     private var contentView: some View {
         ZStack {
+            
+            // The main translations list with filters applied
             SavedTranslationsView(
                 query: query,
                 sortOption: sortOption,
@@ -66,6 +88,7 @@ struct SavedWords: View {
             )
             .searchable(text: $query, prompt: "Search saved words")
             
+            // Overlay loading indicator while fetching language filters
             if isLoadingLanguages {
                 ProgressView("Loading...")
                     .padding()
@@ -84,6 +107,7 @@ struct SavedWords: View {
         }
     }
     
+    /// Toolbar buttons for filtering and sorting
     private var toolbarButtons: some View {
         HStack {
             languageFilterButton
@@ -91,8 +115,12 @@ struct SavedWords: View {
         }
     }
     
+    /// Button and menu for filtering by language
+    /// Shows the available languages with their flags
     private var languageFilterButton: some View {
         Menu {
+            
+            // Option to show all languages
             Button {
                 selectedLanguageCode = nil
             } label: {
@@ -105,6 +133,7 @@ struct SavedWords: View {
                 }
             }
             
+            // List all available languages if any exist
             if !availableLanguages.isEmpty {
                 Divider()
                 
@@ -129,6 +158,8 @@ struct SavedWords: View {
         .disabled(isLoadingLanguages)
     }
     
+    /// Button and menu for sorting the translations
+    /// Options for sorting by date, original text, or translated text
     private var sortButton: some View {
         Menu {
             Section("Sort By") {
@@ -168,6 +199,8 @@ struct SavedWords: View {
         }
     }
     
+    /// Placeholder view shown in detail pane when no translation is selected
+    /// Only visible on larger screens with split view layout
     private var detailPlaceholderView: some View {
         VStack {
             Image(systemName: "book.pages")
@@ -182,23 +215,31 @@ struct SavedWords: View {
     
     // MARK: - Helper Functions
     
+    /// Loads all unique languages used in saved translations
+    /// Populates the language filter dropdown menu
     private func loadAvailableLanguages() {
         isLoadingLanguages = true
         
         Task {
             do {
+                
+                // Create a fetch request that only gets language info
                 let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SavedTranslation.fetchRequest() as! NSFetchRequest<NSFetchRequestResult>
                 
+                // Only fetch the language fields we need
                 fetchRequest.propertiesToFetch = ["languageCode", "languageName"]
                 fetchRequest.resultType = .dictionaryResultType
                 fetchRequest.returnsDistinctResults = true
                 
+                // Sort alphabetically by language name
                 fetchRequest.sortDescriptors = [NSSortDescriptor(key: "languageName", ascending: true)]
                 
+                // Execute the fetch request on the view context
                 let results = try await viewContext.perform {
                     try fetchRequest.execute() as? [[String: Any]] ?? []
                 }
                 
+                // Convert results to language filter objects
                 var languages = [LanguageFilter]()
                 
                 for result in results {
@@ -212,12 +253,15 @@ struct SavedWords: View {
                     }
                 }
                 
+                // Update UI on main thread
                 await MainActor.run {
                     availableLanguages = languages
                     isLoadingLanguages = false
                 }
                 
             } catch {
+                
+                // Handle any errors during loading
                 await MainActor.run {
                     isLoadingLanguages = false
                     showLanguageLoadErrorAlert(message: "Unable to load language filters. Please try again.")
@@ -226,6 +270,7 @@ struct SavedWords: View {
         }
     }
     
+    /// Shows error alert with custom message when loading languages fails
     private func showLanguageLoadErrorAlert(message: String) {
         languageLoadErrorMessage = message
         showLanguageLoadError = true

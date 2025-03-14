@@ -7,16 +7,28 @@
 
 import SwiftUI
 
+/// Main settings tab for the app
+/// Provides options for language selection and appearance customization
 struct SettingsTabView: View {
+    
+    // AR view model passed from parent view
     @ObservedObject var arViewModel: ARViewModel
+    
+    // Access to the app's appearance settings
     @EnvironmentObject private var appearanceManager: AppearanceManager
     
+    // App version information from Info.plist
+    // Used to display version number in settings
     let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     
     var body: some View {
         NavigationView {
             List {
+                
+                // MARK: - Translation Settings
+
+                // Language selection section
                 Section(header: Text("Translation")) {
                     NavigationLink {
                         LanguageSelectionView(
@@ -28,6 +40,7 @@ struct SettingsTabView: View {
                             
                             Spacer()
                             
+                            // Show currently selected language
                             Text(arViewModel.selectedLanguage.localizedName())
                                 .foregroundStyle(.secondary)
                         }
@@ -37,10 +50,15 @@ struct SettingsTabView: View {
                     .accessibilityValue("Current language: \(arViewModel.selectedLanguage.localizedName())")
                 }
                 
+                // MARK: - Appearance Settings
+
+                // Theme selection section (dark/light mode)
                 Section(header: Text("Appearance")) {
                     Picker("Color Scheme", selection: $appearanceManager.colorSchemeOption) {
                         ForEach(AppearanceManager.ColorSchemeOption.allCases) { option in
                             HStack {
+                                
+                                // Show icon for each theme option
                                 Image(systemName: option.icon)
                                     .foregroundColor(iconColor(for: option))
                                 Text(option.title)
@@ -53,6 +71,9 @@ struct SettingsTabView: View {
                     .accessibilityHint("Select between light mode, dark mode, or system default")
                 }
                 
+                // MARK: - About Section
+
+                // App version information
                 Section(header: Text("About")) {
                     HStack {
                         Image(systemName: "number")
@@ -69,6 +90,8 @@ struct SettingsTabView: View {
         }
     }
     
+    /// Returns an appropriate color for each theme option icon
+    /// Makes the icons visually represent their theme
     private func iconColor(for option: AppearanceManager.ColorSchemeOption) -> Color {
         switch option {
         case .system:

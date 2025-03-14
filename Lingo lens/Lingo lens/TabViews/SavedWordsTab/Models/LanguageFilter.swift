@@ -7,33 +7,46 @@
 
 import Foundation
 
-/// Model for language filtering in saved translations
+/// Model for languages in saved translations filter menu
+/// Used in the Saved Words tab for filtering by language
 struct LanguageFilter: Identifiable, Hashable, Comparable {
+    
+    // Unique ID for SwiftUI lists
     let id = UUID()
+    
+    // Language code like "en-US" or "es-ES"
     let languageCode: String
+    
+    // Display name like "English (en-US)" or "Spanish (es-ES)"
     let languageName: String
     
-    /// Flag emoji representing the language's region
+    /// Converts language code to flag emoji
+    /// For example, "en-US" becomes 🇺🇸
     var flag: String {
         languageCode.toFlagEmoji()
     }
     
-    // Hashable implementation
+    // MARK: - Protocol Implementations
+
+    /// Hashable implementation for dictionary keys and sets
     func hash(into hasher: inout Hasher) {
         hasher.combine(languageCode)
     }
     
-    // Equatable implementation
+    /// Equatable implementation for comparing language filters
+    /// Two filters are equal if they have the same language code
     static func == (lhs: LanguageFilter, rhs: LanguageFilter) -> Bool {
         return lhs.languageCode == rhs.languageCode
     }
     
-    // Comparable implementation
+    /// Comparable implementation for sorting languages
+    /// Orders languages alphabetically by name
     static func < (lhs: LanguageFilter, rhs: LanguageFilter) -> Bool {
         return lhs.languageName < rhs.languageName
     }
     
     /// Creates a language filter from Core Data dictionary result
+    /// Used when loading language filters from saved translations
     static func fromDictionary(_ dict: [String: Any]) -> LanguageFilter? {
         guard let code = dict["languageCode"] as? String,
               let name = dict["languageName"] as? String else {

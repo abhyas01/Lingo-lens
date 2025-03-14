@@ -7,19 +7,31 @@
 
 import SwiftUI
 
+/// Main container view that manages navigation between app sections through tabs
 struct ContentView: View {
+
+    // MARK: - Properties
+
+    // Provides translation features throughout the app
     @EnvironmentObject var translationService: TranslationService
+    
+    // Manages AR camera session and translation-related state
     @StateObject private var arViewModel = ARViewModel()
     
+    // Controls alert when no languages are available for translation
     @State private var showNoLanguagesAlert = false
 
+    // Navigation tabs for the app's main sections
     enum Tab {
         case arTranslationView
         case savedWordsView
         case settingsView
     }
     
+    // Currently selected tab in the UI
     @State private var selectedTab: Tab = .arTranslationView
+
+    // MARK: - View Body
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -75,15 +87,31 @@ struct ContentView: View {
     }
 }
 
-#Preview {
+// MARK: - Preview
+
+#Preview("Normal State") {
     let translationService = TranslationService()
     translationService.availableLanguages = [
-        AvailableLanguage(locale: Locale.Language(languageCode: "es", region: "ES")),
-        AvailableLanguage(locale: Locale.Language(languageCode: "fr", region: "FR")),
-        AvailableLanguage(locale: Locale.Language(languageCode: "de", region: "DE"))
+        AvailableLanguage(locale: .init(languageCode: "es", region: "ES")),
+        AvailableLanguage(locale: .init(languageCode: "fr", region: "FR")),
+        AvailableLanguage(locale: .init(languageCode: "de", region: "DE"))
     ]
     
     return ContentView()
         .environmentObject(translationService)
+        .environmentObject(AppearanceManager())
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+}
+
+#Preview("Active Detection") {
+    let translationService = TranslationService()
+    let arViewModel = ARViewModel()
+    arViewModel.isDetectionActive = true
+    arViewModel.detectedObjectName = "Coffee Cup"
+    arViewModel.adjustableROI = CGRect(x: 100, y: 100, width: 200, height: 200)
+    
+    return ContentView()
+        .environmentObject(translationService)
+        .environmentObject(AppearanceManager())
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

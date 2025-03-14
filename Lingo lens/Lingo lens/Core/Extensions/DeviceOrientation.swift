@@ -7,9 +7,11 @@
 
 import UIKit
 
-/// Maps device orientation to EXIF orientation for correct image handling in AR and vision processing
+/// Converts device orientation to the image orientation format needed by the AR camera
 extension UIDeviceOrientation {
     
+    // Maps physical device orientation to the correct image orientation for AR processing
+    // This helps make sure text recognition works in any orientation
     var exifOrientation: CGImagePropertyOrientation {
         switch self {
         case .portraitUpsideDown:

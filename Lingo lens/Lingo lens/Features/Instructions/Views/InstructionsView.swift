@@ -8,7 +8,10 @@
 
 import SwiftUI
 
+/// Modal view that explains how to use the translation feature
 struct InstructionsView: View {
+    
+    // Environment variable to dismiss this sheet when needed
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -83,6 +86,8 @@ struct InstructionsView: View {
         .background(Color(.systemGroupedBackground))
     }
     
+    /// Creates a single instruction card with icon, title and description
+    /// Used to keep the UI consistent across all instruction steps
     private func instructionCard(icon: String, title: String, description: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {

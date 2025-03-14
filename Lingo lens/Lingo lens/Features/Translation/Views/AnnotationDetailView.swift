@@ -10,6 +10,8 @@ import Translation
 import AVFoundation
 import CoreData
 
+/// Detail view shown when user taps on an annotation
+/// Displays the original text and its translation with pronunciation features
 struct AnnotationDetailView: View {
     @EnvironmentObject var translationService: TranslationService
     @Environment(\.dismiss) private var dismiss
@@ -17,29 +19,40 @@ struct AnnotationDetailView: View {
      
     @ObservedObject private var speechManager = SpeechManager.shared
 
+    // Text from the tapped AR annotation
     let originalText: String
+    
+    // Language to translate into
     let targetLanguage: AvailableLanguage
 
+    // MARK: - State Properties
+
+    // Translation results and state
     @State private var translatedText: String = ""
     @State private var isTranslating: Bool = false
     @State private var translationError: Bool = false
     @State private var shouldTranslate: Bool = true
     @State private var configuration: TranslationSession.Configuration?
+    
+    // Alert states
     @State private var showDownloadAlert: Bool = false
     @State private var showLongLoadingWarning: Bool = false
     @State private var showSavedConfirmation: Bool = false
-    @State private var isAlreadySaved: Bool = false
     
+    // Saved state tracking
+    @State private var isAlreadySaved: Bool = false
     @State private var isCheckingSavedStatus: Bool = false
     @State private var isSavingTranslation: Bool = false
     @State private var showCoreDataError: Bool = false
     @State private var coreDataErrorMessage: String = ""
     
+    // How long to wait before showing "taking longer than usual" message
     let loadingTimeout: TimeInterval = 10
 
     var body: some View {
         VStack(spacing: 24) {
             
+            // Close button in top-right corner
             HStack {
                 Spacer()
                 
@@ -57,6 +70,7 @@ struct AnnotationDetailView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     
+                    // Original word section - always visible
                     VStack(spacing: 12) {
                         Text("Original Word")
                             .font(.subheadline)
@@ -74,6 +88,8 @@ struct AnnotationDetailView: View {
                     
                     
                     Group {
+                        
+                        // Translation result section - shown when translation is complete
                         if !translatedText.isEmpty && !translationError {
                             VStack(spacing: 12) {
                                 Text("Translation")
@@ -88,7 +104,10 @@ struct AnnotationDetailView: View {
                                     .background(Color.blue.opacity(0.1))
                                     .cornerRadius(12)
                                 
+                                // Audio playback and save buttons
                                 HStack(spacing: 12) {
+                                    
+                                    // Listen button with dynamic appearance based on speech state
                                     Button(action: speakTranslation) {
                                         HStack {
                                             if speechManager.isLoading {
@@ -121,7 +140,10 @@ struct AnnotationDetailView: View {
                                     )
                                     .accessibilityHint("Hear how \(translatedText) is pronounced in \(targetLanguage.shortName())")
                                     
+                                    // Save button in various states
                                     if isCheckingSavedStatus {
+                                        
+                                        // Checking if already saved
                                         Button(action: {}) {
                                             HStack {
                                                 ProgressView()
@@ -138,6 +160,8 @@ struct AnnotationDetailView: View {
                                         }
                                         .disabled(true)
                                     } else if isSavingTranslation {
+                                        
+                                        // Currently saving
                                         Button(action: {}) {
                                             HStack {
                                                 ProgressView()
@@ -154,6 +178,8 @@ struct AnnotationDetailView: View {
                                         }
                                         .disabled(true)
                                     } else {
+                                        
+                                        // Normal save button or already saved indicator
                                         Button(action: isAlreadySaved ? {} : saveTranslation) {
                                             Label(isAlreadySaved || showSavedConfirmation ? "Saved" : "Save",
                                                   systemImage: isAlreadySaved || showSavedConfirmation ? "checkmark" : "bookmark.fill")
@@ -173,6 +199,7 @@ struct AnnotationDetailView: View {
                             .padding(.horizontal)
                         }
                         
+                        // Loading indicator - shown during translation
                         if isTranslating {
                             VStack(spacing: 16) {
                                 
@@ -184,6 +211,7 @@ struct AnnotationDetailView: View {
                                 Text("Translating...")
                                     .foregroundStyle(.gray)
                                 
+                                // Shows after loadingTimeout seconds if still translating
                                 if showLongLoadingWarning {
                                     VStack(spacing: 8) {
                                         Text("Taking longer than usual...")
@@ -201,6 +229,7 @@ struct AnnotationDetailView: View {
                             .frame(maxWidth: .infinity, minHeight: 150)
                         }
                         
+                        // Error state - shown when translation fails
                         if translationError {
                             VStack(spacing: 16) {
                                 Image(systemName: "exclamationmark.triangle.fill")
@@ -250,6 +279,7 @@ struct AnnotationDetailView: View {
             startTranslation()
             checkIfAlreadySaved()
             
+            // Setup timeout warning if translation takes too long
             DispatchQueue.main.asyncAfter(deadline: .now() + loadingTimeout) {
                 if isTranslating {
                     showLongLoadingWarning = true
@@ -289,11 +319,16 @@ struct AnnotationDetailView: View {
         .animation(.spring(response: 0.3), value: isSavingTranslation)
     }
     
+    // MARK: - CoreData Integration
+
+    /// Checks if the current translation is already saved in CoreData
+    /// Updates isAlreadySaved state accordingly
     private func checkIfAlreadySaved() {
         guard !translatedText.isEmpty, !originalText.isEmpty else { return }
         
         isCheckingSavedStatus = true
         
+        // Build query to find matching translations
         let fetchRequest: NSFetchRequest<SavedTranslation> = SavedTranslation.fetchRequest()
         fetchRequest.predicate = NSPredicate(
             format: "originalText == %@ AND translatedText == %@ AND languageCode == %@",
@@ -318,6 +353,8 @@ struct AnnotationDetailView: View {
         }
     }
     
+    /// Saves the current translation to CoreData
+    /// Updates UI states for success/failure
     private func saveTranslation() {
         isSavingTranslation = true
         
@@ -343,6 +380,7 @@ struct AnnotationDetailView: View {
                         isAlreadySaved = true
                     }
                     
+                    // Hide confirmation after a delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         withAnimation {
                             showSavedConfirmation = false
@@ -358,11 +396,15 @@ struct AnnotationDetailView: View {
         }
     }
     
+    /// Shows CoreData error alert with custom message
     private func showCoreDataErrorAlert(message: String) {
         coreDataErrorMessage = message
         showCoreDataError = true
     }
     
+    // MARK: - Translation Handling
+
+    /// Starts translation process if needed
     private func startTranslation() {
         guard configuration != nil else { return }
         guard translationService.sourceLanguage != targetLanguage.locale else {
@@ -375,6 +417,7 @@ struct AnnotationDetailView: View {
         shouldTranslate = true
     }
     
+    /// Resets all state variables to default values
     private func resetState() {
         translatedText = ""
         translationError = false
@@ -383,12 +426,14 @@ struct AnnotationDetailView: View {
         isSavingTranslation = false
     }
     
+    /// Shows error message with error styling
     private func showError(message: String) {
          translatedText = message
          translationError = true
          isTranslating = false
      }
     
+    /// Speaks the translated text using SpeechManager
     private func speakTranslation() {
         SpeechManager.shared.speak(
             text: translatedText,
@@ -396,6 +441,7 @@ struct AnnotationDetailView: View {
         )
     }
 
+    /// Initializes translation configuration for the target language
     private func setupConfiguration() {
         if configuration == nil {
             configuration = TranslationSession.Configuration(
@@ -405,6 +451,7 @@ struct AnnotationDetailView: View {
         }
     }
     
+    /// Opens system settings to manage translation downloads
     private func openAppSettings() {
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
         if UIApplication.shared.canOpenURL(settingsUrl) {
@@ -412,6 +459,8 @@ struct AnnotationDetailView: View {
         }
     }
 
+    /// Background view that performs actual translation
+    /// Hidden from UI but handles the translation process
     private var translationTaskBackground: some View {
         Group {
             if shouldTranslate, let config = configuration {
@@ -436,40 +485,52 @@ struct AnnotationDetailView: View {
     }
 }
 
-#Preview {
+#Preview("Sample Translation") {
     let translationService = TranslationService()
     translationService.translatedText = "Mesa"
     
     let targetLanguage = AvailableLanguage(
-        locale: Locale.Language(languageCode: "es", region: "ES")
+        locale: .init(languageCode: "es", region: "ES")
     )
     
-    return Group {
-        
-        AnnotationDetailView(
-            originalText: "Table",
-            targetLanguage: targetLanguage
-        )
-        .environmentObject(translationService)
-        
-        
-        AnnotationDetailView(
-            originalText: "Chair",
-            targetLanguage: targetLanguage
-        )
-        .environmentObject(translationService)
-        .onAppear {
-            translationService.translatedText = ""
-        }
-        
+    return AnnotationDetailView(
+        originalText: "Table",
+        targetLanguage: targetLanguage
+    )
+    .environmentObject(translationService)
+    .environmentObject(AppearanceManager())
+    .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+}
+
+#Preview("No Translation Yet") {
+    let translationService = TranslationService()
     
-        AnnotationDetailView(
-            originalText: "Window",
-            targetLanguage: targetLanguage
-        )
-        .environmentObject(translationService)
-        .onAppear {
-            translationService.translatedText = "Translation failed. Try downloading the language."
-        }
-    }
+    let targetLanguage = AvailableLanguage(
+        locale: .init(languageCode: "es", region: "ES")
+    )
+    
+    return AnnotationDetailView(
+        originalText: "Chair",
+        targetLanguage: targetLanguage
+    )
+    .environmentObject(translationService)
+    .environmentObject(AppearanceManager())
+    .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+}
+
+#Preview("Translation Failed") {
+    let translationService = TranslationService()
+    translationService.translatedText = "Translation failed. Try downloading the language."
+    
+    let targetLanguage = AvailableLanguage(
+        locale: .init(languageCode: "es", region: "ES")
+    )
+    
+    return AnnotationDetailView(
+        originalText: "Window",
+        targetLanguage: targetLanguage
+    )
+    .environmentObject(translationService)
+    .environmentObject(AppearanceManager())
+    .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

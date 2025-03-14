@@ -8,14 +8,18 @@
 import SwiftUI
 import Translation
 
+/// Bottom control panel for AR Translation view
+/// Contains buttons for settings, detection toggle, and annotation placement
 struct ControlBar: View {
     @ObservedObject var arViewModel: ARViewModel
     @ObservedObject var settingsViewModel: SettingsViewModel
     @EnvironmentObject private var translationService: TranslationService
     
+    // State for language download process
     @State private var isCheckingLanguage = false
     @State private var showLanguageDownloadPrompt = false
     
+    // State for language preparation
     @State private var isPreparingLanguage = false
     @State private var downloadConfig: TranslationSession.Configuration? = nil
     
@@ -27,6 +31,8 @@ struct ControlBar: View {
             Spacer()
             addAnnotationButton
         }
+        
+        // Sheet for downloading languages when needed
         .sheet(isPresented: $showLanguageDownloadPrompt) {
             LanguageDownloadView(
                 language: arViewModel.selectedLanguage,
@@ -36,14 +42,19 @@ struct ControlBar: View {
                 }
             )
         }
+        
+        // Hidden view that handles language preparation
         .background(translationTaskBackground)
     }
     
+    // Left button - opens settings panel
     private var settingsButton: some View {
         Button(action: {
             withAnimation {
                 settingsViewModel.toggleExpanded()
             }
+            
+            // Stop detection when settings panel opens
             if settingsViewModel.isExpanded {
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
@@ -64,19 +75,28 @@ struct ControlBar: View {
         .disabled(settingsViewModel.isExpanded)
     }
     
+    // Center button - toggles object detection
     private var detectionToggleButton: some View {
         Button(action: {
             if arViewModel.isDetectionActive {
+                
+                // If active, stop detection
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             } else {
+                
+                // If inactive, close settings panel if open
                 if settingsViewModel.isExpanded {
                     settingsViewModel.toggleExpanded()
                 }
+                
+                // Then check language and start detection
                 checkLanguageAndStartDetection()
             }
         }) {
             if isCheckingLanguage {
+                
+                // Checking language download status
                 HStack(spacing: 8) {
                     ProgressView()
                         .scaleEffect(0.7)
@@ -90,6 +110,8 @@ struct ControlBar: View {
                 .background(Color.orange.opacity(0.8))
                 .cornerRadius(12)
             } else if isPreparingLanguage {
+                
+                // Preparing language for translation
                 HStack(spacing: 8) {
                     ProgressView()
                         .scaleEffect(0.7)
@@ -103,6 +125,8 @@ struct ControlBar: View {
                 .background(Color.blue.opacity(0.8))
                 .cornerRadius(12)
             } else {
+                
+                // Regular toggle button
                 Text(arViewModel.isDetectionActive ?
                      "Stop Detection" : "Start Detection")
                     .font(.system(size: 16, weight: .semibold))
@@ -121,9 +145,12 @@ struct ControlBar: View {
         .disabled(isCheckingLanguage || isPreparingLanguage)
     }
     
+    // Right button - adds annotation for detected object
     private var addAnnotationButton: some View {
         ZStack {
             if arViewModel.isAddingAnnotation {
+                
+                // Loading state while adding annotation
                 ZStack {
                     Circle()
                         .fill(Color.black.opacity(0.7))
@@ -135,6 +162,8 @@ struct ControlBar: View {
                 }
                 .padding()
             } else {
+                
+                // Add button - enabled only when object is detected
                 Button(action: {
                     guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.isAddingAnnotation else { return }
                     arViewModel.addAnnotation()
@@ -160,6 +189,7 @@ struct ControlBar: View {
                            "Ready to annotate \(arViewModel.detectedObjectName)")
     }
 
+    // Determines button color based on state
     private func determineAddButtonColor() -> Color {
         if arViewModel.isAddingAnnotation {
             return Color.gray
@@ -170,6 +200,7 @@ struct ControlBar: View {
         }
     }
     
+    // Checks if language is downloaded before starting detection
     private func checkLanguageAndStartDetection() {
         isCheckingLanguage = true
         
@@ -182,6 +213,8 @@ struct ControlBar: View {
                 isCheckingLanguage = false
                 
                 if isDownloaded {
+                    
+                    // If language already downloaded, prepare it
                     prepareLanguageAndStartDetection()
                 } else {
                     showLanguageDownloadPrompt = true
@@ -190,6 +223,7 @@ struct ControlBar: View {
         }
     }
     
+    // Sets up translation configuration for the language
     private func prepareLanguageAndStartDetection() {
         isPreparingLanguage = true
         
@@ -199,13 +233,15 @@ struct ControlBar: View {
         )
     }
 
-    
+    // Hidden view that handles language preparation in background
     private var translationTaskBackground: some View {
         Group {
             if isPreparingLanguage, let config = downloadConfig {
                 Text("")
                     .translationTask(config) { session in
                         do {
+                            
+                            // Prepare the translation system
                             try await session.prepareTranslation()
                             
                             await MainActor.run {
@@ -226,6 +262,7 @@ struct ControlBar: View {
         .hidden()
     }
     
+    // Starts object detection with bounding box at screen center
     private func startDetection() {
         if let sceneView = arViewModel.sceneView {
             let boxSize: CGFloat = 200
