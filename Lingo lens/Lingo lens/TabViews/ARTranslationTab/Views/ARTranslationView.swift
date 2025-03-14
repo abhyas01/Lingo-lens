@@ -91,6 +91,7 @@ struct ARTranslationView: View {
                     
                     // Info button to show instructions
                     Button(action: {
+                        print("Translation's info button pressed")
                         arViewModel.isDetectionActive = false
                         arViewModel.detectedObjectName = ""
                         showInstructions = true

@@ -50,18 +50,18 @@ struct ControlBar: View {
     // Left button - opens settings panel
     private var settingsButton: some View {
         Button(action: {
-            print("👆 Button pressed: Settings panel toggle")
+            print("👆 Button pressed: Label Settings panel toggle")
             withAnimation {
                 settingsViewModel.toggleExpanded()
             }
             
             // Stop detection when settings panel opens
             if settingsViewModel.isExpanded {
-                print("⚙️ Settings panel opened - stopping detection")
+                print("⚙️ Label Settings panel opened - stopping detection")
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             } else {
-                print("⚙️ Settings panel closed")
+                print("⚙️ Label Settings panel closed")
             }
         }) {
             Image(systemName: "textformat.size")
@@ -93,7 +93,7 @@ struct ControlBar: View {
 
                 // If inactive, close settings panel if open
                 if settingsViewModel.isExpanded {
-                    print("⚙️ Closing settings panel before starting detection")
+                    print("⚙️ Closing label settings panel before starting detection")
                     settingsViewModel.toggleExpanded()
                 }
                 
