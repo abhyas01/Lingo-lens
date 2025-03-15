@@ -22,6 +22,8 @@ class DataManager {
         static let launchCount = "launchCount"
         static let isFirstLaunch = "isFirstLaunch"
         static let didFinishOnBoarding = "didFinishOnBoarding"
+        static let neverAskForRating = "neverAskForRating"
+        static let ratingPromptShown = "ratingPromptShown"
     }
     
     // MARK: - App Launch Tracking
@@ -55,25 +57,64 @@ class DataManager {
     /// Checks if this is the first time the app has been launched
     /// - Returns: True if this is the first launch after installation
     func isFirstLaunch() -> Bool {
-        return UserDefaults.standard.integer(forKey: Keys.launchCount) <= 1
+        let isFirstLaunch = UserDefaults.standard.integer(forKey: Keys.launchCount) <= 1
+        print("💾 UserDefaults: First Launch Value: \(isFirstLaunch)")
+        return isFirstLaunch
     }
     
     /// Gets the current launch count
     /// - Returns: Number of times the app has been launched
     func getLaunchCount() -> Int {
-        return UserDefaults.standard.integer(forKey: Keys.launchCount)
+        let count = UserDefaults.standard.integer(forKey: Keys.launchCount)
+        print("📖 UserDefaults: Retrieved launch count: \(count)")
+        return count
     }
     
     /// Marks onboarding as complete in UserDefaults
     /// Called when user completes the onboarding process
     func finishOnBoarding() {
+        print("💾 UserDefaults: Marking onboarding as finished")
         UserDefaults.standard.set(true, forKey: Keys.didFinishOnBoarding)
     }
     
     /// Checks if user has completed the onboarding process
     /// Returns true if onboarding was completed, false if it still needs to be shown
     func didFinishOnBoarding() -> Bool {
-        return UserDefaults.standard.bool(forKey: Keys.didFinishOnBoarding)
+        let finished = UserDefaults.standard.bool(forKey: Keys.didFinishOnBoarding)
+        print("📖 UserDefaults: Retrieved onboarding completion status: \(finished)")
+        return finished
+    }
+    
+    /// Checks if app should show rating prompt on 3rd launch
+    func shouldShowRatingPrompt() -> Bool {
+        // If user chose "Don't Ask Again", never show prompt
+        if UserDefaults.standard.bool(forKey: Keys.neverAskForRating) {
+            print("📖 UserDefaults: Rating prompt disabled by user preference")
+            return false
+        }
+        
+        // If prompt has already been shown, don't show again
+        if UserDefaults.standard.bool(forKey: Keys.ratingPromptShown) {
+            print("📖 UserDefaults: Rating prompt already shown")
+            return false
+        }
+        
+        // Show on exactly the 3rd launch
+        let shouldShow = getLaunchCount() == 3
+        print("📖 UserDefaults: Should show rating prompt: \(shouldShow)")
+        return shouldShow
+    }
+    
+    /// Marks that rating prompt has been shown
+    func markRatingPromptAsShown() {
+        print("💾 UserDefaults: Marking rating prompt as shown")
+        UserDefaults.standard.set(true, forKey: Keys.ratingPromptShown)
+    }
+
+    /// Sets preference to never show rating prompt again
+    func setNeverAskForRating() {
+        print("💾 UserDefaults: Setting never ask for rating to true")
+        UserDefaults.standard.set(true, forKey: Keys.neverAskForRating)
     }
     
     // MARK: - Language Settings

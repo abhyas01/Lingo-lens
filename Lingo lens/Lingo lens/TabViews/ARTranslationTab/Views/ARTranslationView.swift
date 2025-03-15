@@ -48,6 +48,9 @@ struct ARTranslationView: View {
     
     // Loading state for AR session
     @State private var isARSessionLoading = true
+    
+    // To show rating alert on 3rd launch
+    @State private var showRatingAlert: Bool = DataManager.shared.shouldShowRatingPrompt()
 
     // Access to translation service
     @EnvironmentObject var translationService: TranslationService
@@ -287,6 +290,34 @@ struct ARTranslationView: View {
         // Instructions sheet
         .sheet(isPresented: $showInstructions) {
             InstructionsView()
+        }
+        
+        // Alert for rating the app
+        .alert("Enjoying Lingo Lens?", isPresented: $showRatingAlert) {
+            
+            // Rate now button - takes user to App Store
+            Button("Rate Now") {
+                
+                DataManager.shared.markRatingPromptAsShown()
+                
+                // Open App Store - replace with your app ID
+                if let url = URL(string: "https://apps.apple.com/") {
+                    UIApplication.shared.open(url)
+                }
+            }
+            
+            // Later button - just dismisses for now
+            Button("Later") {
+                DataManager.shared.markRatingPromptAsShown()
+            }
+            
+            // Don't ask again button
+            Button("Don't Ask Again", role: .cancel) {
+                DataManager.shared.setNeverAskForRating()
+                DataManager.shared.markRatingPromptAsShown()
+            }
+        } message: {
+            Text("If you enjoy using our app, would you mind taking a moment to rate it? It won't take more than a minute. Thanks for your support!")
         }
         
         // Alert about label removal when leaving tab

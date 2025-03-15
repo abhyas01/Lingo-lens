@@ -21,9 +21,7 @@ struct Lingo_lensApp: App {
     // MARK: - Properties
 
     // Track whether to show onboarding
-    // Onbloarding State variable should have the below commented value
 //    @State private var showOnboarding = DataManager.shared.didFinishOnBoarding() ? false : true
-    // For grading purpose we always show onboarding screen when launching from terminated state
     @State private var showOnboarding = true
     
     // Provides translation features throughout the app
