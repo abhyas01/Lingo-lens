@@ -29,7 +29,7 @@ struct ARTranslationView: View {
     @State private var previousSize: CGSize = .zero
     
     // Controls visibility of instructions sheet
-    @State private var showInstructions = true
+    @State private var showInstructions = DataManager.shared.isFirstLaunch()
     
     // Prevents redundant AR session resumes
     @State private var alreadyResumedARSession = false
