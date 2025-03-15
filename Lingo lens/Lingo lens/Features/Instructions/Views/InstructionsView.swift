@@ -73,6 +73,12 @@ struct InstructionsView: View {
                         title: "6. Label Settings",
                         description: "Tap the text icon (bottom-left) to access label settings. Here you can adjust label size using the slider or clear all labels with the red button."
                     )
+                    
+                    instructionCard(
+                        icon: "info.circle",
+                        title: "Need Help?",
+                        description: "Tap on the \"i\" information button in the top-right corner of the Translate tab anytime to view these instructions again."
+                    )
                 }
                 
                 VStack(spacing: 16) {
