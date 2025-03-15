@@ -1,3 +1,10 @@
+//
+//  DataManager.swift
+//  Lingo lens
+//
+//  Created by Abhyas Mall on 3/13/25.
+//
+
 import Foundation
 import SwiftUI
 
@@ -24,13 +31,22 @@ class DataManager {
         static let didFinishOnBoarding = "didFinishOnBoarding"
         static let neverAskForRating = "neverAskForRating"
         static let ratingPromptShown = "ratingPromptShown"
+        static let initialLaunchDate = "initialLaunchDate"
     }
     
     // MARK: - App Launch Tracking
     
-    /// Increments the launch count and handles first launch detection
-    /// Should be called during app initialization
+    /// Tracks application launch events and initializes first-time user preferences
+    /// - Sets up initial user defaults on first launch including storing the launch date
+    /// - Increments the launch counter for returning users
+    /// - Should be called during app initialization in the app delegate or scene delegate
     func trackAppLaunch() {
+        
+        // Initialize user preference for settings bundle
+        UserDefaults.standard.register(defaults: [
+            "developer_name": "Abhyas Mall"
+        ])
+        print("Initialized user preference for settings bundle: \(String(describing: UserDefaults.standard.string(forKey: "developer_name")))")
         
         // Check if this is the first launch
         let isFirstLaunch = UserDefaults.standard.object(forKey: Keys.isFirstLaunch) == nil
@@ -44,6 +60,13 @@ class DataManager {
             
             // Set initial state for onboarding - false means onboarding hasn't been completed yet
             UserDefaults.standard.set(false, forKey: Keys.didFinishOnBoarding)
+            
+            // Save the initial launch date
+            saveInitialLaunchDate()
+            
+            // For logging - to check if we successfully wrote the initial launch date
+            let _ = getInitialLaunchDate()
+            
         } else {
             
             // Increment launch counter
@@ -52,6 +75,25 @@ class DataManager {
             
             print("📱 App launch #\(currentCount + 1)")
         }
+    }
+    
+    /// Saves the initial launch date to UserDefaults
+    /// Called when the app is launched for the first time
+    func saveInitialLaunchDate() {
+        let currentDate = Date()
+        print("💾 UserDefaults: Saving initial launch date: \(currentDate)")
+        UserDefaults.standard.set(currentDate, forKey: Keys.initialLaunchDate)
+    }
+
+    /// Retrieves the initial launch date from UserDefaults
+    /// - Returns: Date when the app was first launched, or nil if not available
+    func getInitialLaunchDate() -> Date? {
+        guard let date = UserDefaults.standard.object(forKey: Keys.initialLaunchDate) as? Date else {
+            print("📖 UserDefaults: No initial launch date found")
+            return nil
+        }
+        print("📖 UserDefaults: Retrieved initial launch date: \(date)")
+        return date
     }
     
     /// Checks if this is the first time the app has been launched
