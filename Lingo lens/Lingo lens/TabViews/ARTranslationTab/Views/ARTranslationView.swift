@@ -87,24 +87,29 @@ struct ARTranslationView: View {
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                if !cameraPermissionManager.showPermissionAlert && !isARSessionLoading {
                     
-                    // Info button to show instructions
-                    Button(action: {
-                        print("Translation's info button pressed")
-                        arViewModel.isDetectionActive = false
-                        arViewModel.detectedObjectName = ""
-                        showInstructions = true
-                    }) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.system(size: 15))
-                            .foregroundColor(.primary)
-                            .accessibilityLabel("Instructions")
-                            .accessibilityHint("Learn how to use the Translate Feature")
+                    ToolbarItem(placement: .topBarTrailing) {
+                        
+                        // Info button to show instructions
+                        Button(action: {
+                            print("Translation's info button pressed")
+                            arViewModel.isDetectionActive = false
+                            arViewModel.detectedObjectName = ""
+                            showInstructions = true
+                        }) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 15))
+                                .foregroundColor(.primary)
+                                .accessibilityLabel("Instructions")
+                                .accessibilityHint("Learn how to use the Translate Feature")
+                        }
+                        .disabled(showInstructions)
                     }
                 }
             }
         }
+    
         .onAppear {
             isViewActive = true
             cameraPermissionManager.startChecking()
@@ -126,6 +131,27 @@ struct ARTranslationView: View {
             }
             
             setupOrientationObserver()
+        }
+        
+        // Observe camera permission changes
+        .onChange(of: cameraPermissionManager.showPermissionAlert) { oldValue, newValue in
+            
+            // When permission changes from denied to granted
+            if oldValue == true && newValue == false {
+                
+                DispatchQueue.main.async {
+                    arViewModel.resetAnnotations()
+                    arViewModel.resumeARSession()
+                    alreadyResumedARSession = true
+                    
+                    // Hide loading screen after a short delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isARSessionLoading = false
+                        }
+                    }
+                }
+            }
         }
         
         // Handle app state changes (background/foreground)
@@ -158,6 +184,7 @@ struct ARTranslationView: View {
                 if !neverShowAlertAboutReset {
                     showAlertAboutReset = true
                 }
+                
             default:
                 break
             }

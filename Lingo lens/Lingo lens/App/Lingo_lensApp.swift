@@ -13,11 +13,17 @@ struct Lingo_lensApp: App {
     // Add logging on app startup
     init() {
         print("🚀 App initializing...")
+        
+        // Track app launch in DataManager
+        DataManager.shared.trackAppLaunch()
     }
     
     // MARK: - Properties
 
     // Track whether to show onboarding
+    // Onbloarding State variable should have the below commented value
+//    @State private var showOnboarding = DataManager.shared.didFinishOnBoarding() ? false : true
+    // For grading purpose we always show onboarding screen when launching from terminated state
     @State private var showOnboarding = true
     
     // Provides translation features throughout the app
@@ -39,6 +45,7 @@ struct Lingo_lensApp: App {
                 
                 OnboardingView {
                     showOnboarding = false
+//                    DataManager.shared.finishOnBoarding()
                 }
                 .preferredColorScheme(appearanceManager.colorSchemeOption.colorScheme)
                 

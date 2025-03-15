@@ -1,10 +1,3 @@
-//
-//  DataManager.swift
-//  Lingo lens
-//
-//  Created by Abhyas Mall on 3/13/25.
-//
-
 import Foundation
 import SwiftUI
 
@@ -26,6 +19,61 @@ class DataManager {
         static let colorSchemeOption = "colorSchemeOption"
         static let neverShowLabelRemovalWarning = "neverShowLabelRemovalWarning"
         static let annotationScale = "annotationScale"
+        static let launchCount = "launchCount"
+        static let isFirstLaunch = "isFirstLaunch"
+        static let didFinishOnBoarding = "didFinishOnBoarding"
+    }
+    
+    // MARK: - App Launch Tracking
+    
+    /// Increments the launch count and handles first launch detection
+    /// Should be called during app initialization
+    func trackAppLaunch() {
+        
+        // Check if this is the first launch
+        let isFirstLaunch = UserDefaults.standard.object(forKey: Keys.isFirstLaunch) == nil
+        
+        if isFirstLaunch {
+            print("📱 First app launch detected")
+            
+            // This is the first launch ever
+            UserDefaults.standard.set(false, forKey: Keys.isFirstLaunch)
+            UserDefaults.standard.set(1, forKey: Keys.launchCount)
+            
+            // Set initial state for onboarding - false means onboarding hasn't been completed yet
+            UserDefaults.standard.set(false, forKey: Keys.didFinishOnBoarding)
+        } else {
+            
+            // Increment launch counter
+            let currentCount = UserDefaults.standard.integer(forKey: Keys.launchCount)
+            UserDefaults.standard.set(currentCount + 1, forKey: Keys.launchCount)
+            
+            print("📱 App launch #\(currentCount + 1)")
+        }
+    }
+    
+    /// Checks if this is the first time the app has been launched
+    /// - Returns: True if this is the first launch after installation
+    func isFirstLaunch() -> Bool {
+        return UserDefaults.standard.integer(forKey: Keys.launchCount) <= 1
+    }
+    
+    /// Gets the current launch count
+    /// - Returns: Number of times the app has been launched
+    func getLaunchCount() -> Int {
+        return UserDefaults.standard.integer(forKey: Keys.launchCount)
+    }
+    
+    /// Marks onboarding as complete in UserDefaults
+    /// Called when user completes the onboarding process
+    func finishOnBoarding() {
+        UserDefaults.standard.set(true, forKey: Keys.didFinishOnBoarding)
+    }
+    
+    /// Checks if user has completed the onboarding process
+    /// Returns true if onboarding was completed, false if it still needs to be shown
+    func didFinishOnBoarding() -> Bool {
+        return UserDefaults.standard.bool(forKey: Keys.didFinishOnBoarding)
     }
     
     // MARK: - Language Settings

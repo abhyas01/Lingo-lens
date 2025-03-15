@@ -14,7 +14,7 @@ import AVFoundation
 class CameraPermissionManager: ObservableObject {
     
     // Shows alert when camera access is denied/restricted or needs to be requested
-    @Published var showPermissionAlert = false
+    @Published var showPermissionAlert = true
     
     // Properties for log throttling
     private var lastLogTime: Date = Date.distantPast
