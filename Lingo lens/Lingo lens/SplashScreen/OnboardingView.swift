@@ -11,7 +11,7 @@ import SwiftUI
 /// Presents a swipeable walkthrough of app features
 struct OnboardingView: View {
     
-    // Track device size details
+    // Track device size details for responsive layout decisions
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     
@@ -24,6 +24,11 @@ struct OnboardingView: View {
     // Compute sizing based on device
     private var isIPad: Bool {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+    
+    // Detect landscape orientation for adaptive layout
+    private var isCompactVertical: Bool {
+        verticalSizeClass == .compact
     }
     
     // Content for each onboarding screen
@@ -56,66 +61,107 @@ struct OnboardingView: View {
             // Header section with icon and title
             VStack {
                 Image(systemName: "translate")
-                    .font(.system(size: 60))
+                    .font(.system(size: isCompactVertical ? 40 : 60))
                     .foregroundColor(.blue)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, isCompactVertical ? 0 : 8)
                 
                 Text("Lingo lens")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 
-                Text("Learn languages naturally")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
+                // Hide tagline in landscape to save vertical space
+                if !isCompactVertical {
+                    Text("Learn languages naturally")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                    
+                    Text("Created by Abhyas Mall")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
                 
-                Text("Created by Abhyas Mall")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
             }
-            .padding(.top, isIPad ? 50 : 18)
+            .padding(.top, isIPad ? 50 : isCompactVertical ? 8 : 18)
             .padding(.bottom, 20)
             
             Spacer()
             
-            // Page content with TabView
+            // Page content with TabView for swiping between pages
             TabView(selection: $currentPage) {
                 ForEach(0..<pages.count, id: \.self) { index in
-                    VStack {
+                    if isCompactVertical {
                         
-                        Spacer()
+                        // Horizontal layout for landscape orientation
+                        HStack {
+                            
+                            Spacer()
+                            
+                            // Feature icon with background - smaller in landscape
+                            Image(systemName: pages[index].image)
+                                .font(.system(size: 30))
+                                .foregroundColor(.blue)
+                                .padding(10)
+                                .background(Circle().fill(.blue).opacity(0.1))
+                            
+                            Spacer()
+                            
+                            // Description text with leading alignment for better readability in landscape
+                            Text(pages[index].description)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.leading)
+                                    .padding(.horizontal)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .lineSpacing(2)
+                            
+                            Spacer()
+                            
+                            }
+                            .padding(.horizontal)
+                            .tag(index)
+                            .padding()
                         
-                        // Feature icon with background
-                        Image(systemName: pages[index].image)
-                            .font(.system(size: isIPad ? 120 : 60))
-                            .foregroundColor(.blue)
-                            .padding(isIPad ? 30 : 15)
-                            .background(Circle().fill(.blue).opacity(0.1))
-                            .padding(.bottom)
+                        } else {
                         
-                        // Feature title and description
+                        // Description text with leading alignment for better readability in landscape
                         VStack {
-                            Text(pages[index].title)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .multilineTextAlignment(.center)
+                            
+                            Spacer()
+                            
+                            // Feature icon with background
+                            Image(systemName: pages[index].image)
+                                .font(.system(size: isIPad ? 120 : 60))
+                                .foregroundColor(.blue)
+                                .padding(isIPad ? 30 : 15)
+                                .background(Circle().fill(.blue).opacity(0.1))
                                 .padding(.bottom)
                             
-                            Text(pages[index].description)
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .lineSpacing(2)
+                            // Feature title and description
+                            VStack {
+                                Text(pages[index].title)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.bottom)
+                                
+                                Text(pages[index].description)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .lineSpacing(2)
+                            }
+                            .padding(.horizontal)
+                            
+                            Spacer()
                         }
-                        .padding(.horizontal)
+                        .tag(index)
+                        .padding()
                         
-                        Spacer()
                     }
-                    .tag(index)
-                    .padding()
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))

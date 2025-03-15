@@ -34,25 +34,25 @@ struct InstructionsView: View {
                 VStack(spacing: 20) {
                     instructionCard(
                         icon: "globe",
-                        title: "1. Select Language",
+                        title: "Select Language",
                         description: "Open the Settings tab (gear icon at bottom) and choose your target language under language selection."
                     )
 
                     instructionCard(
                         icon: "camera.viewfinder",
-                        title: "2. Start Detection",
+                        title: "Start Detection",
                         description: "Return to the Translate tab and tap the green 'Start Detection' button in the bottom-center. Point your camera at objects you want to identify."
                     )
 
                     instructionCard(
                         icon: "square.dashed",
-                        title: "3. Adjust Bounding Box",
+                        title: "Adjust Bounding Box",
                         description: "Position the yellow box around the object you want to translate. Move the box by dragging its edges. Resize using the circular handles at the corners. Move closer to the object if needed."
                     )
 
                     instructionCard(
                         icon: "plus.circle.fill",
-                        title: "4. Add Annotations",
+                        title: "Add Annotations",
                         description: "When an object is detected (green text appears), tap the blue plus button to place a translation label on that object."
                     )
 
@@ -64,20 +64,20 @@ struct InstructionsView: View {
                     
                     instructionCard(
                         icon: "hand.tap.fill",
-                        title: "5. View Translations",
+                        title: "View Translations",
                         description: "Tap on any label to see its detailed translation and hear pronunciation. You can also save words for future reference. Long-press any label to delete it."
                     )
 
                     instructionCard(
                         icon: "textformat.size",
-                        title: "6. Label Settings",
+                        title: "Label Settings",
                         description: "Tap the text icon (bottom-left) to access label settings. Here you can adjust label size using the slider or clear all labels with the red button."
                     )
                     
                     instructionCard(
                         icon: "info.circle",
                         title: "Need Help?",
-                        description: "Tap on the \"i\" information button in the top-right corner of the Translate tab anytime to view these instructions again."
+                        description: "Tap on the information button in the top-right corner of the Translate tab anytime to view these instructions again."
                     )
                 }
                 
