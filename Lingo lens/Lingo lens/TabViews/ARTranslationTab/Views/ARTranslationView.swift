@@ -104,11 +104,6 @@ struct ARTranslationView: View {
                     }
                 }
             }
-            
-            // Instructions sheet
-            .sheet(isPresented: $showInstructions) {
-                InstructionsView()
-            }
         }
         .onAppear {
             isViewActive = true
@@ -260,6 +255,11 @@ struct ARTranslationView: View {
                     settingsViewModel: settingsViewModel
                 )
             }
+        }
+        
+        // Instructions sheet
+        .sheet(isPresented: $showInstructions) {
+            InstructionsView()
         }
         
         // Alert about label removal when leaving tab
