@@ -35,37 +35,43 @@ struct InstructionsView: View {
                     instructionCard(
                         icon: "globe",
                         title: "1. Select Language",
-                        description: "Open settings from the gear icon (bottom-left) and choose your target language under language selection. Hit done to confirm."
+                        description: "Open the Settings tab (gear icon at bottom) and choose your target language under language selection."
                     )
-                    
+
                     instructionCard(
                         icon: "camera.viewfinder",
                         title: "2. Start Detection",
-                        description: "Tap the green 'Start Detection' button in the bottom-center. Point your device at objects you want to identify."
+                        description: "Return to the Translate tab and tap the green 'Start Detection' button in the bottom-center. Point your camera at objects you want to identify."
                     )
-                    
+
                     instructionCard(
                         icon: "square.dashed",
                         title: "3. Adjust Bounding Box",
-                        description: "Fit objects inside the yellow box. Move the box by dragging edges or the icons on edges. Resize using corner circles. Move closer to object if needed."
+                        description: "Position the yellow box around the object you want to translate. Move the box by dragging its edges. Resize using the circular handles at the corners. Move closer to the object if needed."
                     )
-                    
+
                     instructionCard(
                         icon: "plus.circle.fill",
                         title: "4. Add Annotations",
-                        description: "When an object is detected (green text appears), tap the blue plus button on the bottom-right to place an annotation on an object."
+                        description: "When an object is detected (green text appears), tap the blue plus button to place a translation label on that object."
+                    )
+
+                    instructionCard(
+                        icon: "battery.100",
+                        title: "Battery Saving",
+                        description: "You can tap the red 'Stop Detection' button when you're done detecting objects to save battery power. Resume detection anytime by tapping 'Start Detection' again."
                     )
                     
                     instructionCard(
                         icon: "hand.tap.fill",
                         title: "5. View Translations",
-                        description: "Tap any annotation to see its translation and hear pronunciation in your selected language."
+                        description: "Tap on any label to see its detailed translation and hear pronunciation. You can also save words for future reference. Long-press any label to delete it."
                     )
-                    
+
                     instructionCard(
-                        icon: "slider.horizontal.3",
-                        title: "Additional Features",
-                        description: "• Adjust annotation size with the slider in settings\n• Clear all annotations using the red button in settings\n• Stop detection mode when done exploring"
+                        icon: "textformat.size",
+                        title: "6. Label Settings",
+                        description: "Tap the text icon (bottom-left) to access label settings. Here you can adjust label size using the slider or clear all labels with the red button."
                     )
                 }
                 

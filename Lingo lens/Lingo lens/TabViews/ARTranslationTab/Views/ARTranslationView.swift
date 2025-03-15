@@ -29,7 +29,7 @@ struct ARTranslationView: View {
     @State private var previousSize: CGSize = .zero
     
     // Controls visibility of instructions sheet
-    @State private var showInstructions = false
+    @State private var showInstructions = true
     
     // Prevents redundant AR session resumes
     @State private var alreadyResumedARSession = false
@@ -103,6 +103,11 @@ struct ARTranslationView: View {
                             .accessibilityHint("Learn how to use the Translate Feature")
                     }
                 }
+            }
+            
+            // Instructions sheet
+            .sheet(isPresented: $showInstructions) {
+                InstructionsView()
             }
         }
         .onAppear {
@@ -282,11 +287,6 @@ struct ARTranslationView: View {
         
         // Smooth animation for error messages
         .animation(.easeInOut, value: arViewModel.showPlacementError)
-        
-        // Instructions sheet
-        .sheet(isPresented: $showInstructions) {
-            InstructionsView()
-        }
         
         // Annotation detail sheet (shows translation)
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {

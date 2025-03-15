@@ -42,6 +42,11 @@ struct OnboardingView: View {
             image: "bookmark.fill",
             title: "Build Your Vocabulary",
             description: "All saved translations are organized in your personal collection."
+        ),
+        OnboardingPage(
+            image: "gear",
+            title: "Select Language",
+            description: "Select your language of choice from the settings."
         )
     ]
     
