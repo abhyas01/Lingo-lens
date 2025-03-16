@@ -29,7 +29,7 @@ struct ARTranslationView: View {
     @State private var previousSize: CGSize = .zero
     
     // Controls visibility of instructions sheet
-    @State private var showInstructions = DataManager.shared.isFirstLaunch()
+    @State private var showInstructions = DataManager.shared.hasDismissedInstructions() ? false : true
     
     // Prevents redundant AR session resumes
     @State private var alreadyResumedARSession = false
@@ -50,7 +50,10 @@ struct ARTranslationView: View {
     @State private var isARSessionLoading = true
     
     // To show rating alert on 3rd launch
-    @State private var showRatingAlert: Bool = DataManager.shared.shouldShowRatingPrompt()
+    // if instructions sheet needs to be presented
+    // then we set it to false so that the instructions
+    // sheet is not dismissed because of the alert
+    @State private var showRatingAlert: Bool = !DataManager.shared.hasDismissedInstructions() ? false : DataManager.shared.shouldShowRatingPrompt()
 
     // Access to translation service
     @EnvironmentObject var translationService: TranslationService
@@ -289,7 +292,7 @@ struct ARTranslationView: View {
         
         // Instructions sheet
         .sheet(isPresented: $showInstructions) {
-            InstructionsView()
+            InstructionsView(ratingAlert: $showRatingAlert)
         }
         
         // Alert for rating the app

@@ -32,6 +32,7 @@ class DataManager {
         static let neverAskForRating = "neverAskForRating"
         static let ratingPromptShown = "ratingPromptShown"
         static let initialLaunchDate = "initialLaunchDate"
+        static let didDismissInstructions = "didDismissInstructions"
     }
     
     // MARK: - App Launch Tracking
@@ -60,6 +61,10 @@ class DataManager {
             
             // Set initial state for onboarding - false means onboarding hasn't been completed yet
             UserDefaults.standard.set(false, forKey: Keys.didFinishOnBoarding)
+            
+            // Set initial state for showing instructions - false signifies that user has not yet
+            // seen the instructions sheet
+            UserDefaults.standard.set(false, forKey: Keys.didDismissInstructions)
             
             // Save the initial launch date
             saveInitialLaunchDate()
@@ -125,6 +130,21 @@ class DataManager {
         let finished = UserDefaults.standard.bool(forKey: Keys.didFinishOnBoarding)
         print("📖 UserDefaults: Retrieved onboarding completion status: \(finished)")
         return finished
+    }
+    
+    /// Checks if the user has previously dismissed the instructions screen
+    /// Returns true if instructions were dismissed, false if they should be shown
+    func hasDismissedInstructions() -> Bool {
+        let dismissedState = UserDefaults.standard.bool(forKey: Keys.didDismissInstructions)
+        print("📖 UserDefaults: Retrieved instructions dismissal status: \(dismissedState)")
+        return dismissedState
+    }
+
+    /// Marks instructions as dismissed in UserDefaults
+    /// Called when user closes the instructions screen
+    func dismissedInstructions() {
+        print("💾 UserDefaults: Marking instructions as dismissed")
+        UserDefaults.standard.set(true, forKey: Keys.didDismissInstructions)
     }
     
     /// Checks if app should show rating prompt on 3rd launch
