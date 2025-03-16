@@ -23,7 +23,7 @@ struct SettingsTabView: View {
     let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 
                 // MARK: - Translation Settings
@@ -88,6 +88,7 @@ struct SettingsTabView: View {
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Settings")
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     /// Returns an appropriate color for each theme option icon

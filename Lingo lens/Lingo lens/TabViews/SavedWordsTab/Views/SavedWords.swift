@@ -53,11 +53,10 @@ struct SavedWords: View {
     var body: some View {
         
         // Split view with list on left, details on right for larger screens
-        NavigationSplitView {
+        NavigationStack {
             contentView
-        } detail: {
-            detailPlaceholderView
         }
+        .navigationViewStyle(StackNavigationViewStyle())
         
         // Error alert for language filter loading failures
         .alert("Error Loading Languages", isPresented: $showLanguageLoadError) {
@@ -196,20 +195,6 @@ struct SavedWords: View {
         } label: {
             Label("Sort", systemImage: "arrow.up.arrow.down")
                 .foregroundColor(.blue)
-        }
-    }
-    
-    /// Placeholder view shown in detail pane when no translation is selected
-    /// Only visible on larger screens with split view layout
-    private var detailPlaceholderView: some View {
-        VStack {
-            Image(systemName: "book.pages")
-                .font(.system(size: 70))
-                .foregroundColor(.blue.opacity(0.7))
-                .padding(.bottom, 10)
-            
-            Text("Select a saved word to view more details.")
-                .font(.title3.bold())
         }
     }
     
