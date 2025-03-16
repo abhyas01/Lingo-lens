@@ -10,12 +10,24 @@ import SwiftUI
 @main
 struct Lingo_lensApp: App {
 
-    // Add logging on app startup
+    //  Track if the app initialized
+    private static var didInitOnce = false
+    
     init() {
-        print("🚀 App initializing...")
-        
-        // Track app launch in DataManager
-        DataManager.shared.trackAppLaunch()
+
+        //  If app was not initialized already, only then we call
+        //  DataManager.shared.trackAppLaunch() to increment the
+        //  launch count
+        if !Self.didInitOnce {
+            Self.didInitOnce = true
+            
+            // Add logging on app startup
+            print("🚀 App initializing...")
+
+            // Track the app launch only the first time this
+            // SwiftUI app struct is created in a truly fresh run:
+            DataManager.shared.trackAppLaunch()
+        }
     }
     
     // MARK: - Properties
