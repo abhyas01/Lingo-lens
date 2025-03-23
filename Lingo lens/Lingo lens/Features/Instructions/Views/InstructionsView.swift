@@ -66,11 +66,17 @@ struct InstructionsView: View {
                     )
                     
                     instructionCard(
-                        icon: "hand.tap.fill",
+                        icon: "hand.tap",
                         title: "View Translations",
-                        description: "Tap on any label to see its detailed translation and hear pronunciation. You can also save words for future reference. Long-press any label to delete it."
+                        description: "Tap on any label to see its detailed translation and hear pronunciation. You can also save words for future reference."
                     )
 
+                    instructionCard(
+                        icon: "hand.tap.fill",
+                        title: "Remove Labels",
+                        description: "Long press on any label to remove it."
+                    )
+                    
                     instructionCard(
                         icon: "textformat.size",
                         title: "Label Settings",
