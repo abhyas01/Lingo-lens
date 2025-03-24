@@ -74,12 +74,8 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                     switch reason {
                     case .initializing:
                         self.updateLoadingMessage("Initializing AR session...")
-                    case .excessiveMotion:
-                        self.updateLoadingMessage("Please move device more slowly")
-                    case .insufficientFeatures:
-                        self.updateLoadingMessage("Try moving to an area with more texture")
-                    case .relocalizing:
-                        self.updateLoadingMessage("Recovering tracking...")
+                    case .excessiveMotion, .insufficientFeatures, .relocalizing:
+                        self.updateLoadingMessage("Loading...")
                     @unknown default:
                         self.updateLoadingMessage("Limited tracking")
                     }
@@ -103,7 +99,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                     
                     // Show encouraging message halfway through stabilization
                     if self.frameCounter == 5 {
-                        self.updateLoadingMessage("Almost ready...")
+                        self.updateLoadingMessage("Getting ready...")
                     }
                     
                     // When we've had enough stable frames, consider AR session ready
