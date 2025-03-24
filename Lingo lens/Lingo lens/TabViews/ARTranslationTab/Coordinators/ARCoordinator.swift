@@ -75,9 +75,9 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                     case .initializing:
                         self.updateLoadingMessage("Initializing AR session...")
                     case .excessiveMotion, .insufficientFeatures, .relocalizing:
-                        self.updateLoadingMessage("Loading...")
+                        self.updateLoadingMessage("Loading AR session...")
                     @unknown default:
-                        self.updateLoadingMessage("Limited tracking")
+                        self.updateLoadingMessage("Loading...")
                     }
                     
                     // If we've been in limited state too long, proceed anyway with a warning
