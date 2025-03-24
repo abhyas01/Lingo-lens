@@ -86,6 +86,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                         withAnimation {
                             self.arViewModel.isARSessionLoading = false
                         }
+                        self.updateLoadingMessage("Setting up AR session...")
                         self.timeInLimitedState = 0
                     }
                     
@@ -107,6 +108,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                         withAnimation {
                             self.arViewModel.isARSessionLoading = false
                         }
+                        self.updateLoadingMessage("Setting up AR session...")
                         self.frameCounter = 0
                         self.timeInLimitedState = 0
                     }
