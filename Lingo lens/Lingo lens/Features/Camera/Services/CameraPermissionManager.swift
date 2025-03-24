@@ -21,7 +21,7 @@ class CameraPermissionManager: ObservableObject {
     private let logThrottleInterval: TimeInterval = 5
     
     // Add a property to track if checking is active
-    private var isCheckingActive = false
+    var isCheckingActive = false
 
     // MARK: - Permission Handling
 
@@ -83,8 +83,8 @@ class CameraPermissionManager: ObservableObject {
         
         // Keep checking periodically if we don't have permission yet
         // This helps detect if user grants permission in Settings outside the app
-        if !showPermissionAlert {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        if showPermissionAlert {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.checkPermission()
             }
         }

@@ -46,7 +46,7 @@ class ARViewModel: ObservableObject {
     @Published var isAddingAnnotation = false
     
     // Error message when annotation placement fails
-    @Published var placementErrorMessage = "Could not detect a plane to anchor annotation. Try again changing angle or moving around."
+    @Published var placementErrorMessage = "Couldn't anchor label on object. Try adjusting your angle or moving closer to help detect a surface."
     
     // Controls delete confirmation alert
     @Published var showDeleteConfirmation = false
@@ -59,6 +59,12 @@ class ARViewModel: ObservableObject {
     
     // Tracks whether deletion is in progress
     @Published var isDeletingAnnotation = false
+    
+    // Tracks if AR is setting up
+    @Published var isARSessionLoading: Bool = true
+    
+    // Current user-facing message explaining AR session status
+    @Published var loadingMessage: String = "Setting up AR session..."
     
     // Currently selected language for translations
     // Persists to UserDefaults when changed
@@ -190,7 +196,10 @@ class ARViewModel: ObservableObject {
         guard let sceneView = sceneView else { return }
         
         print("▶️ Resuming AR session")
-
+        
+        // Reset AR loading state
+        isARSessionLoading = true
+        
         // Ensure session is paused before restarting
         if sessionState != .paused {
             sceneView.session.pause()
@@ -281,12 +290,15 @@ class ARViewModel: ObservableObject {
                 
                 // No plane found - show placement error
                 DispatchQueue.main.async {
-                    self.showPlacementError = true
                     self.isAddingAnnotation = false
                     
-                    // Hide error after 2 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.showPlacementError = false
+                    if !self.showPlacementError {
+                        self.showPlacementError = true
+                        
+                        // Hide error after 4 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            self.showPlacementError = false
+                        }
                     }
                 }
             }

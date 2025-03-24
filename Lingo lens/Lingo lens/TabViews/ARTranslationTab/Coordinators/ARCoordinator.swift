@@ -8,7 +8,7 @@
 import ARKit
 import SceneKit
 import Vision
-import UIKit
+import SwiftUI
 
 /// Connects AR session events to the ARViewModel
 /// Handles camera frames, detects objects, and manages user interactions with AR annotations
@@ -16,6 +16,21 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     
     // Reference to view model that holds AR state
     var arViewModel: ARViewModel
+    
+    // Tracks the number of frames with normal tracking to ensure stability
+    private var frameCounter = 0
+    
+    // Number of consecutive frames with normal tracking required before considering AR session stable
+    private let requiredFramesForStability = 10
+    
+    // Tracks how long we've been in a limited tracking state
+    private var timeInLimitedState: TimeInterval = 0
+    
+    // Maximum time to wait in limited tracking state before proceeding anyway (3 seconds)
+    private let maxLimitedStateWaitTime: TimeInterval = 3.0
+    
+    // Timestamp of the last processed frame for calculating time deltas
+    private var lastFrameTimestamp: TimeInterval = 0
     
     // Object detection logic is handled by separate manager
     private let objectDetectionManager = ObjectDetectionManager()
@@ -30,6 +45,78 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     /// Processes each camera frame when object detection is active
     /// Takes the camera image, crops it to the user-defined bounding box, then runs object detection
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
+        
+        // Calculates time between frames to track duration in limited states
+        let currentTime = frame.timestamp
+        let deltaTime = lastFrameTimestamp > 0 ? currentTime - lastFrameTimestamp : 0
+        lastFrameTimestamp = currentTime
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+
+            if self.arViewModel.isARSessionLoading {
+                let currentTrackingState = frame.camera.trackingState
+                
+                switch currentTrackingState {
+                    
+                case .notAvailable:
+                    
+                    // Reset counters when tracking is completely unavailable
+                    self.frameCounter = 0
+                    self.timeInLimitedState = 0
+                    
+                case .limited(let reason):
+                    
+                    // Accumulate time spent in limited tracking state
+                    self.timeInLimitedState += deltaTime
+                    
+                    // Show specific guidance based on the limitation type
+                    switch reason {
+                    case .initializing:
+                        self.updateLoadingMessage("Initializing AR session...")
+                    case .excessiveMotion:
+                        self.updateLoadingMessage("Please move device more slowly")
+                    case .insufficientFeatures:
+                        self.updateLoadingMessage("Try moving to an area with more texture")
+                    case .relocalizing:
+                        self.updateLoadingMessage("Recovering tracking...")
+                    @unknown default:
+                        self.updateLoadingMessage("Limited tracking")
+                    }
+                    
+                    // If we've been in limited state too long, proceed anyway with a warning
+                    if self.timeInLimitedState >= self.maxLimitedStateWaitTime {
+                        print("⏱️ Proceeding with limited tracking after timeout")
+                        withAnimation {
+                            self.arViewModel.isARSessionLoading = false
+                        }
+                        self.timeInLimitedState = 0
+                    }
+                    
+                case .normal:
+                    
+                    // Count consecutive frames with normal tracking
+                    self.frameCounter += 1
+                    
+                    // Accumulate time spent
+                    self.timeInLimitedState += deltaTime
+                    
+                    // Show encouraging message halfway through stabilization
+                    if self.frameCounter == 5 {
+                        self.updateLoadingMessage("Almost ready...")
+                    }
+                    
+                    // When we've had enough stable frames, consider AR session ready
+                    if self.frameCounter >= self.requiredFramesForStability {
+                        withAnimation {
+                            self.arViewModel.isARSessionLoading = false
+                        }
+                        self.frameCounter = 0
+                        self.timeInLimitedState = 0
+                    }
+                }
+            }
+        }
         
         // Only process frames when detection is active and scene view exists
         guard arViewModel.isDetectionActive,
@@ -76,26 +163,6 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                           normalizedROI: normalizedROI)
     }
     
-    // Helper method that doesn't retain the ARFrame
-    private func processFrameData(pixelBuffer: CVPixelBuffer,
-                                 exifOrientation: CGImagePropertyOrientation,
-                                 normalizedROI: CGRect) {
-        
-        // Send the cropped region to object detection manager
-        objectDetectionManager.detectObjectCropped(
-            pixelBuffer: pixelBuffer,
-            exifOrientation: exifOrientation,
-            normalizedROI: normalizedROI
-        ) { [weak self] result in
-            
-            // Update the UI with detection result on main thread using weak self
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.arViewModel.detectedObjectName = result ?? ""
-            }
-        }
-    }
-    
     /// Handles AR session errors by showing a user-friendly error message
     func session(_ session: ARSession, didFailWithError error: Error) {
         print("❌ AR session error: \(error.localizedDescription)")
@@ -119,6 +186,34 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                     }
                 )
             }
+        }
+    }
+    
+    /// Helper method that doesn't retain the ARFrame
+    private func processFrameData(pixelBuffer: CVPixelBuffer,
+                                 exifOrientation: CGImagePropertyOrientation,
+                                 normalizedROI: CGRect) {
+        
+        // Send the cropped region to object detection manager
+        objectDetectionManager.detectObjectCropped(
+            pixelBuffer: pixelBuffer,
+            exifOrientation: exifOrientation,
+            normalizedROI: normalizedROI
+        ) { [weak self] result in
+            
+            // Update the UI with detection result on main thread using weak self
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.arViewModel.detectedObjectName = result ?? ""
+            }
+        }
+    }
+    
+    /// Updates the loading message only if it's different from current message
+    /// Prevents unnecessary UI updates when message hasn't changed
+    private func updateLoadingMessage(_ message: String) {
+        if self.arViewModel.loadingMessage != message {
+            self.arViewModel.loadingMessage = message
         }
     }
     

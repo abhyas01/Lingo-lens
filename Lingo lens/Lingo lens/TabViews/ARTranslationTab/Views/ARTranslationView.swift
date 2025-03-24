@@ -46,9 +46,6 @@ struct ARTranslationView: View {
     // For handling device orientation changes
     @State private var currentOrientation = UIDevice.current.orientation
     
-    // Loading state for AR session
-    @State private var isARSessionLoading = true
-    
     // To show rating alert on 3rd launch
     // if instructions sheet needs to be presented
     // then we set it to false so that the instructions
@@ -70,21 +67,27 @@ struct ARTranslationView: View {
                         }
                     )
                 } else {
-                    if isARSessionLoading {
-                        
-                        // Loading state while AR session initializes
-                        ZStack {
-                            Color.black.edgesIgnoringSafeArea(.all)
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(.white)
-                        }
-                        .transition(.opacity)
-                    } else {
-                        
-                        // Main AR view when everything is ready
+                    ZStack {
                         mainARView
                             .withARErrorHandling()
+                        
+                        // Loading state while AR session initializes
+                        if arViewModel.isARSessionLoading {
+                            Color.black
+                                .opacity(0.8)
+                            
+                            VStack {
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                    .tint(.white)
+                                
+                                Text(arViewModel.loadingMessage)
+                                    .foregroundColor(.white)
+                                    .font(.footnote)
+                                    .padding(.top, 10)
+                                    .opacity(0.8)
+                            }
+                        }
                     }
                 }
             }
@@ -93,7 +96,7 @@ struct ARTranslationView: View {
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
-                if !cameraPermissionManager.showPermissionAlert && !isARSessionLoading {
+                if !cameraPermissionManager.showPermissionAlert {
                     
                     ToolbarItem(placement: .topBarTrailing) {
                         
@@ -126,13 +129,6 @@ struct ARTranslationView: View {
                     arViewModel.resetAnnotations()
                     arViewModel.resumeARSession()
                     alreadyResumedARSession = true
-                    
-                    // Hide loading screen after a short delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isARSessionLoading = false
-                        }
-                    }
                 }
             }
             
@@ -149,13 +145,6 @@ struct ARTranslationView: View {
                     arViewModel.resetAnnotations()
                     arViewModel.resumeARSession()
                     alreadyResumedARSession = true
-                    
-                    // Hide loading screen after a short delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isARSessionLoading = false
-                        }
-                    }
                 }
             }
         }
@@ -167,7 +156,10 @@ struct ARTranslationView: View {
                 
                 // Resume AR session when app becomes active
                 if isViewActive {
-                    cameraPermissionManager.startChecking()
+                    
+                    if !cameraPermissionManager.isCheckingActive {
+                        cameraPermissionManager.startChecking()
+                    }
                     
                     if !alreadyResumedARSession {
                         if !cameraPermissionManager.showPermissionAlert {
@@ -179,16 +171,18 @@ struct ARTranslationView: View {
                 
             case .background:
                 
-                cameraPermissionManager.stopChecking()
-
-                // Pause AR session when app goes to background
-                arViewModel.pauseARSession()
-                arViewModel.resetAnnotations()
-                alreadyResumedARSession = false
-                
-                // Show reset warning unless disabled
-                if !neverShowAlertAboutReset {
-                    showAlertAboutReset = true
+                if isViewActive {
+                    cameraPermissionManager.stopChecking()
+                    
+                    // Pause AR session when app goes to background
+                    arViewModel.pauseARSession()
+                    arViewModel.resetAnnotations()
+                    alreadyResumedARSession = false
+                    
+                    // Show reset warning unless disabled
+                    if !neverShowAlertAboutReset {
+                        showAlertAboutReset = true
+                    }
                 }
                 
             default:
