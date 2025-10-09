@@ -124,7 +124,7 @@ class SpeechManager: NSObject, ObservableObject {
     
     /// Stops any ongoing speech immediately
     func stopSpeaking() {
-        speechSynthesizer.stopSpeaking(at: .immediate)
+        speechSynthesizer.stopSpeaking(at: .word)
         isLoading = false
         isSpeaking = false
     }

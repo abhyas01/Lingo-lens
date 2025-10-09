@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import CoreData
+@preconcurrency import CoreData
 
 /// Main container view for the "Saved Words" tab
 /// Handles filtering, sorting and displaying the user's saved translations
