@@ -1,112 +1,109 @@
 {
   "images" : [
     {
-      "filename" : "Lingo lens light (40 x 40 px).png",
+      "filename" : "40.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "20x20"
     },
     {
-      "filename" : "Lingo lens light (60 x 60 px).png",
+      "filename" : "60.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
       "size" : "20x20"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px).png",
+      "filename" : "58.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "29x29"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (1).png",
+      "filename" : "87.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
       "size" : "29x29"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (2).png",
+      "filename" : "76.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "38x38"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (3).png",
+      "filename" : "114.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
       "size" : "38x38"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (4).png",
+      "filename" : "80.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "40x40"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (5).png",
+      "filename" : "120 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
       "size" : "40x40"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (5) 1.png",
+      "filename" : "120.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "60x60"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (6).png",
+      "filename" : "180.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
       "size" : "60x60"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (7).png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "64x64"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (8).png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
       "size" : "64x64"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (9).png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "68x68"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (10).png",
+      "filename" : "152.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "76x76"
     },
     {
-      "filename" : "Lingo lens light (100 x 100 px) (11).png",
+      "filename" : "167.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
       "size" : "83.5x83.5"
     },
     {
-      "filename" : "Lingo lens light.png",
+      "filename" : "1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -118,7 +115,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (40 x 40 px).png",
+      "filename" : "40 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -131,7 +128,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (60 x 60 px).png",
+      "filename" : "60 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
@@ -144,7 +141,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px).png",
+      "filename" : "58 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -157,7 +154,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (1).png",
+      "filename" : "87 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
@@ -170,7 +167,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (2).png",
+      "filename" : "76 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -183,7 +180,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (3).png",
+      "filename" : "114 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
@@ -196,7 +193,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (4).png",
+      "filename" : "80 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -209,7 +206,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (5).png",
+      "filename" : "120 2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
@@ -222,7 +219,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (5) 1.png",
+      "filename" : "120 3.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -235,7 +232,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (7).png",
+      "filename" : "180 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
@@ -248,7 +245,6 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (8).png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -261,7 +257,6 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (9).png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "3x",
@@ -274,7 +269,6 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (10).png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -287,7 +281,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (11).png",
+      "filename" : "152 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -300,7 +294,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark (100 x 100 px) (12).png",
+      "filename" : "167 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "scale" : "2x",
@@ -313,7 +307,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Lingo lens dark.png",
+      "filename" : "1024 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
