@@ -1,4 +1,4 @@
-# Lingo lens (Winner - Apple Swift Student Challenge 2025)
+# Lingo lens (🏆 Winner - Apple Swift Student Challenge 2025)
 
 _See. Translate. Learn._
 
@@ -38,11 +38,42 @@ https://github.com/user-attachments/assets/d19d27b6-e487-46b6-bb54-15adb89e8789
 
 _Note: All processing happens **on-device** for privacy and offline usability._
 
+## User Interface
+
+### _App Interface Preview_
+
+| **Tab** | **Screenshot** | **Description** |
+|---------|----------------|----------------|
+| **Translate Tab** | <img width="300" alt="ar-config-stage-ui-update-to-user" src="https://github.com/user-attachments/assets/aa047e6b-6808-41ee-a3a4-a719d417298b" /> | AR initializes and communicates its status to the user. |
+|  | <img width="300" alt="detection-mode" src="https://github.com/user-attachments/assets/fc59bccf-a8c1-4c3d-83dd-d3c617cdce15" /> | Shows the app in Detection Mode. |
+|  | <img width="300" alt="anchor-labels" src="https://github.com/user-attachments/assets/e17b2856-0281-4bc4-8340-f4fffcd132cd" /> | Shows the anchored labels visible in 3D space. |
+|  | <img width="300" alt="translation-label-unsaved" src="https://github.com/user-attachments/assets/f9c957ec-6da7-4ae2-8f6e-8f86819e29ce" /> | Translation pop-up for "coffee mug" and options to Listen or Save (orange, unsaved). |
+|  | <img width="300" alt="translation-label-saved" src="https://github.com/user-attachments/assets/1c1a8030-c278-412b-b5e9-72b4bdcf0008" /> | Translation pop-up for "laptop"; shows it has been Saved (green checkmark) and allows Listen. |
+|  | <img width="300" alt="lang-not-installed-check" src="https://github.com/user-attachments/assets/ca45c270-f61c-435b-a38c-5117a20fba52" /> | Triggered when detection mode starts but the selected language isn’t installed (edge case). |
+|  | <img width="300" alt="camera-permission-check" src="https://github.com/user-attachments/assets/e228461a-a8d0-4f81-b4a9-09109c8bb9f5" /> | Shown on the Translate page when camera access is not granted, prompting the user to enable permissions. |
+| **Saved Words Tab** | <img width="300" alt="saved-words" src="https://github.com/user-attachments/assets/1383ffe9-3c4f-49cb-b43e-e2f38b478d89" /> | Vocabulary list saved by the user. |
+|  | <img width="300" alt="saved-words-filtering" src="https://github.com/user-attachments/assets/191d93f5-7e2b-4edf-9371-166da2a94ee1" /> | Vocabulary list filtering by language. |
+|  | <img width="300" alt="saved-words-sorting" src="https://github.com/user-attachments/assets/402e0c56-a990-491c-b9de-0230d5b15e78" /> | Vocabulary list sorted by date added. |
+| **Settings Tab** | <img width="300" height="1266" alt="settings-tab" src="https://github.com/user-attachments/assets/fce4aced-aaa5-404f-a4e1-c03b38c2fc3a" /> | Settings tab for selecting language and color scheme. 
+|  | <img width="300" alt="lang-selection" src="https://github.com/user-attachments/assets/27ae9750-baeb-44d9-be9c-0c18f309d5f9" /> | Language selection sheet. |
+|  | <img width="300" alt="color-scheme" src="https://github.com/user-attachments/assets/24b98c9b-ee05-45c5-8904-81148b8037ed" /> | Color Scheme settings. |
+
+### _Onboarding & Instructions_
+
+| **Screen** | **Screenshot** |
+|------------|----------------|
+| Onboarding | <img width="300" alt="onboarding-1" src="https://github.com/user-attachments/assets/83769ac4-109f-4f41-bc69-2edfcc4abc5e" /> |
+|  | <img width="300" alt="onboarding-2" src="https://github.com/user-attachments/assets/71dfacd1-d226-4d7c-a954-a81a6e6f6de0" /> |
+|  | <img width="300" alt="onboarding-3" src="https://github.com/user-attachments/assets/9e6c4179-5fb2-4b31-b6d4-7bc1605dcb90" /> |
+|  | <img width="300" alt="onboarding-4" src="https://github.com/user-attachments/assets/c10993a6-8801-4abe-9898-f1fe406b7816" /> |
+| Instructions | <img width="300" alt="ins(1:3)" src="https://github.com/user-attachments/assets/2294a70d-fd69-4a2e-a824-f3b622d54667" /> |
+|  | <img width="300" alt="ins(2:3)" src="https://github.com/user-attachments/assets/7f496c5b-0ea9-4e91-bcd7-accd695caffc" /> |
+|  | <img width="300" alt="ins(3:3)" src="https://github.com/user-attachments/assets/755ac239-bd2c-4454-aaa7-21b02339d612" /> |
+
 ## Future Development  
 
 Planned improvements:  
 - Enhanced object recognition accuracy.  
-- Expanded language and voice support.  
 - iCloud sync for saved vocabulary.  
 - Gamified progress tracking and achievements.
 
