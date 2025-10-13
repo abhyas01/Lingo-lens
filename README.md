@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/944a0b48-c240-4d12-9631-9ce407146e83
 | Framework / Component | Purpose |
 |-----------------------|----------|
 | **ARKit** | Spatial tracking and anchoring labels in the real world |
-| **Vision + CoreML** | Real-time object recognition and inference |
+| **Vision + CoreML** | FastViT image classifier for real-time object recognition |
 | **Apple Translation Framework** | Accurate translations for detected objects |
 | **AVFoundation** | Speech synthesis for pronunciation playback |
 | **CoreData** | Local persistence for saved words and settings |
