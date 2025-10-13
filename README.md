@@ -74,8 +74,12 @@ Planned improvements:
 
 _Note: Lingo Lens works best on Pro iPhones/iPads with a LiDAR sensor. Placing anchors on objects may take a few retries on other devices due to hardware limitations, and I'm actively working to improve this experience._
 
+## Project Context
+
+Lingo lens was developed as the final project for the course [MPCS 51030 iOS Application Development (Winter 2025)](https://mpcs-courses.cs.uchicago.edu/2024-25/winter/courses/mpcs-51030-1) at the **University of Chicago**.
+
 ## Author  
 
 **Developed by:** Abhyas Mall  
 **Project:** Lingo lens  
-**Contact:** mallabhyas@gmail.com / abhyas@uchicago.edu
+**Contact:** mallabhyas@gmail.com
