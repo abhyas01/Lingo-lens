@@ -1,6 +1,13 @@
 # Lingo lens (🏆 Winner - Apple Swift Student Challenge 2025)
 
-_See. Translate. Learn._
+<div align="center">
+    <img
+        width="200"
+        alt="Lingo lens"
+        src="https://github.com/user-attachments/assets/35b8a54e-a877-4c25-a2ef-936aee0f7d98"
+    />
+    <p>See. Translate. Learn.</p>
+</div>
 
 - Lingo lens is an **augmented reality (AR) language learning app** that transforms your surroundings into an interactive vocabulary builder.  
 
