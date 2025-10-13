@@ -20,11 +20,12 @@ https://github.com/user-attachments/assets/944a0b48-c240-4d12-9631-9ce407146e83
 
 ## How It Works  
 
-1. Point the camera at an object.  
-2. Adjust the detection box and anchor a label in 3D space.  
-3. **Tap the anchored label** to reveal its translation and hear the pronunciation.
-4. Long press a label to delete it.
-5. Save the word to your personal collection for review later.
+1. Select the language you want to learn.
+2. Point the camera at an object.  
+3. Adjust the detection box and anchor a label in 3D space.  
+4. **Tap the anchored label** to reveal its translation and hear the pronunciation.
+5. Long press a label to delete it.
+6. Save the word to your personal collection.
 
 ## Key Technologies  
 
