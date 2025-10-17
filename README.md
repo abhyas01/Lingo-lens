@@ -87,6 +87,9 @@ Lingo lens was developed as the final project for the course [MPCS 51030 iOS App
 
 ## Author  
 
-**Developed by:** Abhyas Mall  
-**Project:** Lingo lens  
+**Developed by:** [Abhyas Mall](https://www.linkedin.com/in/abhyasmall/)  
+**Project:** [Lingo lens](https://github.com/abhyas01/Lingo-lens)  
 **Contact:** mallabhyas@gmail.com
+
+## License
+Lingo lens is under the [MIT License](https://github.com/abhyas01/Lingo-lens/blob/main/LICENSE.md)
