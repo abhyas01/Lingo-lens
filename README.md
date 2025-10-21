@@ -29,9 +29,7 @@ This app, in its **pre-mature state** at commit `e163259a2cf234c037cc77b1eff6b22
 
 Watch the demo video showcasing Lingo Lens in action.  
 
-_Note: Uploaded at 2× speed, pronunciation may sound faster._
-
-https://github.com/user-attachments/assets/944a0b48-c240-4d12-9631-9ce407146e83
+https://github.com/user-attachments/assets/63795cc0-f3fe-4913-a0c5-0baecf3c7398
 
 ## How It Works  
 
