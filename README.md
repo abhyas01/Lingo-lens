@@ -15,7 +15,9 @@
 
 ## Achievement  
 
-This app, in its **pre-mature state** at commit `e163259a2cf234c037cc77b1eff6b222212c42e3`, was submitted for the **Apple Swift Student Challenge 2025**, and it **won the Swift Student Challenge**. 🎉  
+- This app, in its **pre-mature state** at commit `e163259a2cf234c037cc77b1eff6b222212c42e3`, was submitted for the **Apple Swift Student Challenge 2025**, and it **won the Swift Student Challenge**. 🎉  
+
+- Received a certificate signed by Susan Prescott (Apple’s VP of Worldwide Developer Relations), a pair of AirPods Max, and a free Apple Developer account.
 
 <div align="center">
     <img
