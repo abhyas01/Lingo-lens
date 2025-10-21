@@ -17,6 +17,14 @@
 
 This app, in its **pre-mature state** at commit `e163259a2cf234c037cc77b1eff6b222212c42e3`, was submitted for the **Apple Swift Student Challenge 2025**, and it **won the Swift Student Challenge**. 🎉  
 
+<div align="center">
+    <img
+        width="350"
+        alt="Lingo lens"
+        src="https://github.com/user-attachments/assets/c29e483c-f014-4c35-b607-bf5c38e5d0a6"
+    />
+</div>
+
 ## Demo  
 
 Watch the demo video showcasing Lingo Lens in action.  
