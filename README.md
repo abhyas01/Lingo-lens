@@ -20,7 +20,7 @@ This app, in its **pre-mature state** at commit `e163259a2cf234c037cc77b1eff6b22
 <div align="center">
     <img
         width="350"
-        alt="Lingo lens"
+        alt="Certificate by Apple"
         src="https://github.com/user-attachments/assets/c29e483c-f014-4c35-b607-bf5c38e5d0a6"
     />
 </div>
