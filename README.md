@@ -33,6 +33,8 @@ Watch the demo video showcasing Lingo Lens in action.
 
 https://github.com/user-attachments/assets/63795cc0-f3fe-4913-a0c5-0baecf3c7398
 
+_Note: The demo was recorded before the iOS 26 update. For the updated UI, check the [User Interface](#user-interface) section._
+
 ## How It Works  
 
 1. Select the language you want to learn.
