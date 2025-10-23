@@ -3,7 +3,7 @@
 <div align="center">
     <img
         width="150"
-        alt="Lingo lens"
+        alt="Lingo lens logo"
         src="https://github.com/user-attachments/assets/35b8a54e-a877-4c25-a2ef-936aee0f7d98"
     />
     <p>See. Translate. Learn.</p>
