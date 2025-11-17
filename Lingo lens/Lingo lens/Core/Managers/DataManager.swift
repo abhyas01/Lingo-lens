@@ -90,7 +90,7 @@ class DataManager {
     }
 
     /// Marks instructions as dismissed
-    func dismissInstructions() {
+    func dismissedInstructions() {
         didDismissInstructions = true
     }
 
