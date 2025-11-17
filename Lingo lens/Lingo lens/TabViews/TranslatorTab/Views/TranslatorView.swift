@@ -40,13 +40,13 @@ struct TranslatorView: View {
                             translatedText: viewModel.translatedText,
                             isTranslating: viewModel.isTranslating,
                             onListen: {
-                                // TODO: Implement speech synthesis
+                                viewModel.playTranslation()
                             },
                             onCopy: {
                                 viewModel.copyTranslation()
                             },
                             onSave: {
-                                // TODO: Save to CoreData
+                                viewModel.saveTranslation()
                             },
                             onShare: {
                                 showShareSheet = true

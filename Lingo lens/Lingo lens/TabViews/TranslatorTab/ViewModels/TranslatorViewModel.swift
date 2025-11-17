@@ -8,6 +8,7 @@
 import Foundation
 import Translation
 import Combine
+import CoreData
 
 /// Manages state and logic for the Translator tab
 @MainActor
@@ -30,6 +31,8 @@ class TranslatorViewModel: ObservableObject {
     private let translationService: TranslationService
     private let languageDetectionManager = LanguageDetectionManager()
     private let speechRecognitionManager = SpeechRecognitionManager()
+    private let speechManager = SpeechManager.shared
+    private let persistenceController: PersistenceController
     private var debounceTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
 
@@ -60,8 +63,12 @@ class TranslatorViewModel: ObservableObject {
 
     // MARK: - Initialization
 
-    init(translationService: TranslationService = TranslationService()) {
+    init(
+        translationService: TranslationService = TranslationService(),
+        persistenceController: PersistenceController = .shared
+    ) {
         self.translationService = translationService
+        self.persistenceController = persistenceController
 
         // Set up text change observation
         setupTextObservation()
@@ -202,6 +209,55 @@ class TranslatorViewModel: ObservableObject {
     /// Clears all history
     func clearHistory() {
         translationHistory.removeAll()
+    }
+
+    /// Plays the translated text using text-to-speech
+    func playTranslation() {
+        guard !translatedText.isEmpty else {
+            Logger.warning("Cannot play translation - text is empty")
+            return
+        }
+
+        let languageCode = targetLanguage.minimalIdentifier
+        Logger.debug("Playing translation in language: \(languageCode)")
+        speechManager.speak(text: translatedText, language: targetLanguage)
+        HapticManager.shared.selection()
+    }
+
+    /// Saves the current translation to CoreData
+    func saveTranslation() {
+        guard !translatedText.isEmpty, !inputText.isEmpty else {
+            Logger.warning("Cannot save translation - text is empty")
+            return
+        }
+
+        let context = persistenceController.container.viewContext
+        let savedTranslation = SavedTranslation(context: context)
+        savedTranslation.id = UUID()
+        savedTranslation.originalText = inputText
+        savedTranslation.translatedText = translatedText
+        savedTranslation.dateAdded = Date()
+
+        // Get language info for display
+        if let target = translationService.availableLanguages.first(where: {
+            $0.locale.minimalIdentifier == targetLanguage.minimalIdentifier
+        }) {
+            savedTranslation.languageCode = target.shortName()
+            savedTranslation.languageName = target.localizedName()
+        } else {
+            savedTranslation.languageCode = targetLanguage.minimalIdentifier
+            savedTranslation.languageName = targetLanguage.minimalIdentifier
+        }
+
+        do {
+            try context.save()
+            Logger.info("Translation saved to CoreData")
+            HapticManager.shared.success()
+        } catch {
+            Logger.error("Failed to save translation: \(error.localizedDescription)")
+            errorMessage = "Failed to save translation"
+            HapticManager.shared.error()
+        }
     }
 
     // MARK: - Private Methods
