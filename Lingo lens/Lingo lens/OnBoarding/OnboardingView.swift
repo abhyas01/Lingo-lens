@@ -207,6 +207,6 @@ struct OnboardingPage {
 
 #Preview {
     OnboardingView {
-        print("Onboarding dismissed")
+        Logger.debug("Onboarding dismissed")
     }
 }

@@ -50,7 +50,7 @@ struct ControlBar: View {
     // Left button - opens settings panel
     private var settingsButton: some View {
         Button(action: {
-            print("👆 Button pressed: Label Settings panel toggle")
+            Logger.debug("👆 Button pressed: Label Settings panel toggle")
             HapticManager.shared.buttonTap()
 
             withAnimation {
@@ -59,11 +59,11 @@ struct ControlBar: View {
 
             // Stop detection when settings panel opens
             if settingsViewModel.isExpanded {
-                print("⚙️ Label Settings panel opened - stopping detection")
+                Logger.debug("⚙️ Label Settings panel opened - stopping detection")
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             } else {
-                print("⚙️ Label Settings panel closed")
+                Logger.debug("⚙️ Label Settings panel closed")
             }
         }) {
             Image(systemName: "textformat.size")
@@ -87,22 +87,22 @@ struct ControlBar: View {
             HapticManager.shared.buttonTap()
 
             if arViewModel.isDetectionActive {
-                print("👆 Button pressed: Stop detection")
+                Logger.debug("👆 Button pressed: Stop detection")
 
                 // If active, stop detection
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
             } else {
-                print("👆 Button pressed: Start detection")
+                Logger.debug("👆 Button pressed: Start detection")
 
                 // If inactive, close settings panel if open
                 if settingsViewModel.isExpanded {
-                    print("⚙️ Closing label settings panel before starting detection")
+                    Logger.debug("⚙️ Closing label settings panel before starting detection")
                     settingsViewModel.toggleExpanded()
                 }
 
                 // Then check language and start detection
-                print("🔍 Checking language availability before starting detection")
+                Logger.debug(" Checking language availability before starting detection")
                 checkLanguageAndStartDetection()
             }
         }) {
@@ -178,10 +178,10 @@ struct ControlBar: View {
                 // Add button - enabled only when object is detected
                 Button(action: {
                     guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.isAddingAnnotation else {
-                        print("👆 Button pressed: Add annotation - but disabled (no object detected or already adding)")
+                        Logger.debug("👆 Button pressed: Add annotation - but disabled (no object detected or already adding)")
                         return
                     }
-                    print("👆 Button pressed: Add annotation for \"\(arViewModel.detectedObjectName)\"")
+                    Logger.debug("👆 Button pressed: Add annotation for \"\(arViewModel.detectedObjectName)\"")
                     HapticManager.shared.buttonTap()
                     arViewModel.addAnnotation()
                 }) {
@@ -219,7 +219,7 @@ struct ControlBar: View {
     
     // Checks if language is downloaded before starting detection
     private func checkLanguageAndStartDetection() {
-        print("🌐 Starting language download check for: \(arViewModel.selectedLanguage.shortName())")
+        Logger.info(" Starting language download check for: \(arViewModel.selectedLanguage.shortName())")
         isCheckingLanguage = true
         
         Task {
@@ -231,12 +231,12 @@ struct ControlBar: View {
                 isCheckingLanguage = false
                 
                 if isDownloaded {
-                    print("✅ Language \(arViewModel.selectedLanguage.shortName()) is already downloaded")
+                    Logger.info(" Language \(arViewModel.selectedLanguage.shortName()) is already downloaded")
 
                     // If language already downloaded, prepare it
                     prepareLanguageAndStartDetection()
                 } else {
-                    print("⚠️ Language \(arViewModel.selectedLanguage.shortName()) needs to be downloaded")
+                    Logger.warning(" Language \(arViewModel.selectedLanguage.shortName()) needs to be downloaded")
                     showLanguageDownloadPrompt = true
                 }
             }
@@ -245,7 +245,7 @@ struct ControlBar: View {
     
     // Sets up translation configuration for the language
     private func prepareLanguageAndStartDetection() {
-        print("🔄 Preparing language for detection: \(arViewModel.selectedLanguage.shortName())")
+        Logger.debug(" Preparing language for detection: \(arViewModel.selectedLanguage.shortName())")
         isPreparingLanguage = true
         
         downloadConfig = TranslationSession.Configuration(
@@ -260,24 +260,24 @@ struct ControlBar: View {
             if isPreparingLanguage, let config = downloadConfig {
                 Text("")
                     .translationTask(config) { session in
-                        print("🔄 Starting translation task to prepare language: \(arViewModel.selectedLanguage.shortName())")
+                        Logger.debug(" Starting translation task to prepare language: \(arViewModel.selectedLanguage.shortName())")
 
                         do {
-                            print("🔄 Executing prepareTranslation() for language: \(arViewModel.selectedLanguage.shortName())")
+                            Logger.debug(" Executing prepareTranslation() for language: \(arViewModel.selectedLanguage.shortName())")
 
                             // Prepare the translation system
                             try await session.prepareTranslation()
 
-                            print("✅ Successfully prepared translation session for language: \(arViewModel.selectedLanguage.shortName())")
+                            Logger.info(" Successfully prepared translation session for language: \(arViewModel.selectedLanguage.shortName())")
 
                             await MainActor.run {
                                 isPreparingLanguage = false
                                 downloadConfig = nil
-                                print("🔄 Starting detection after successful language preparation")
+                                Logger.debug(" Starting detection after successful language preparation")
                                 startDetection()
                             }
                         } catch {
-                            print("❌ Failed to prepare translation session: \(error.localizedDescription)")
+                            Logger.error(" Failed to prepare translation session: \(error.localizedDescription)")
                             await MainActor.run {
                                 isPreparingLanguage = false
                                 downloadConfig = nil
@@ -301,7 +301,7 @@ struct ControlBar: View {
                 height: boxSize
             )
         }
-        print("🔍 Starting object detection with language: \(arViewModel.selectedLanguage.shortName())")
+        Logger.debug(" Starting object detection with language: \(arViewModel.selectedLanguage.shortName())")
         arViewModel.isDetectionActive = true
     }
 }

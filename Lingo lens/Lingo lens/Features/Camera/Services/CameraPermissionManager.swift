@@ -38,7 +38,7 @@ class CameraPermissionManager: ObservableObject {
             // Throttle logging - only log if 5 seconds have passed
             let now = Date()
             if now.timeIntervalSince(lastLogTime) >= logThrottleInterval {
-                print("✅ Camera access already granted")
+                Logger.info(" Camera access already granted")
                 lastLogTime = now
             }
 
@@ -47,18 +47,18 @@ class CameraPermissionManager: ObservableObject {
             
         case .notDetermined:
             
-            print("❓ Camera permission not determined yet - requesting access")
+            Logger.debug("❓ Camera permission not determined yet - requesting access")
             
             // First time asking for camera access - show system permission dialog
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async {
                     if !granted {
-                        print("❌ User denied camera permission")
+                        Logger.error(" User denied camera permission")
 
                         // User denied permission in system dialog
                         self.showPermissionAlert = true
                     } else {
-                        print("✅ User granted camera permission")
+                        Logger.info(" User granted camera permission")
                         
                         // User allowed permission in system dialog
                         self.showPermissionAlert = false
@@ -68,14 +68,14 @@ class CameraPermissionManager: ObservableObject {
             
         case .denied, .restricted:
             
-            print("❌ Camera access previously denied or ⚠️ Camera access restricted")
+            Logger.error(" Camera access previously denied or ⚠️ Camera access restricted")
 
             // Camera access previously denied or restricted by parental controls
             showPermissionAlert = true
             
         @unknown default:
             
-            print("⚠️ Unknown camera permission status")
+            Logger.warning(" Unknown camera permission status")
             
             // Handle any future cases by showing the alert
             showPermissionAlert = true
@@ -106,18 +106,18 @@ class CameraPermissionManager: ObservableObject {
     /// Takes user to app's settings page in iOS Settings app
     /// User can enable camera permission there if previously denied
     func openAppSettings() {
-        print("⚙️ Opening app settings for camera permission")
+        Logger.debug("⚙️ Opening app settings for camera permission")
 
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
-            print("❌ Could not create settings URL")
+            Logger.error(" Could not create settings URL")
             return
         }
         
         if UIApplication.shared.canOpenURL(settingsUrl) {
-            print("✅ Opened settings app")
+            Logger.info(" Opened settings app")
             UIApplication.shared.open(settingsUrl)
         } else {
-            print("❌ Could not open settings app")
+            Logger.error(" Could not open settings app")
         }
     }
 }

@@ -195,7 +195,7 @@ class ConversationViewModel: ObservableObject {
             if detectedLanguage.minimalIdentifier == myLangCode {
                 let previousSpeaker = currentSpeaker
                 currentSpeaker = .me
-                print("🔍 Auto-detected speaker: Me (\(myLangCode))")
+                Logger.debug("Auto-detected speaker: Me (\(myLangCode))")
 
                 // Haptic feedback only if speaker actually changed
                 if previousSpeaker != .me {
@@ -204,7 +204,7 @@ class ConversationViewModel: ObservableObject {
             } else if detectedLanguage.minimalIdentifier == theirLangCode {
                 let previousSpeaker = currentSpeaker
                 currentSpeaker = .them
-                print("🔍 Auto-detected speaker: Them (\(theirLangCode))")
+                Logger.debug("Auto-detected speaker: Them (\(theirLangCode))")
 
                 // Haptic feedback only if speaker actually changed
                 if previousSpeaker != .them {

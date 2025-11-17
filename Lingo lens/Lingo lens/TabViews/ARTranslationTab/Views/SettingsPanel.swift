@@ -24,7 +24,7 @@ struct SettingsPanel: View {
                         .foregroundStyle(.primary)
                     Spacer()
                     Button(action: {
-                        print("👆 Button pressed: Close settings panel")
+                        Logger.debug("👆 Button pressed: Close settings panel")
                         settingsViewModel.toggleExpanded()
                     }) {
                         Image(systemName: "xmark.circle.fill")
@@ -79,7 +79,7 @@ struct SettingsPanel: View {
     // Button to remove all placed annotations
     private var clearAnnotationsButton: some View {
         Button(action: {
-            print("👆 Button pressed: Clear all labels")
+            Logger.debug("👆 Button pressed: Clear all labels")
             arViewModel.resetAnnotations()
         }) {
             HStack {

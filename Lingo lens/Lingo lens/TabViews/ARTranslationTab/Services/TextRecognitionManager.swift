@@ -76,7 +76,7 @@ class TextRecognitionManager: ObservableObject {
                     }
                 }
             } catch {
-                print("Text recognition error: \(error)")
+                Logger.debug("Text recognition error: \(error)")
                 DispatchQueue.main.async {
                     self?.isProcessing = false
                     completion([])
@@ -121,7 +121,7 @@ class TextRecognitionManager: ObservableObject {
                     }
                 }
             } catch {
-                print("Text recognition error: \(error)")
+                Logger.debug("Text recognition error: \(error)")
                 DispatchQueue.main.async {
                     self?.isProcessing = false
                     completion([])

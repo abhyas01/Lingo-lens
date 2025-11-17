@@ -65,7 +65,7 @@ struct DetectionModeToggle: View {
                 // Haptic feedback
                 HapticManager.shared.modeChange()
 
-                print("🔄 Switched detection mode from \(oldMode) to \(newMode)")
+                Logger.debug(" Switched detection mode from \(oldMode) to \(newMode)")
             }
 
             // Instant OCR toggle (only shown in text mode)
@@ -95,11 +95,11 @@ struct DetectionModeToggle: View {
                     // Auto-start detection in instant mode
                     if newValue {
                         arViewModel.isDetectionActive = true
-                        print("✨ Instant OCR enabled - auto-starting detection")
+                        Logger.debug("✨ Instant OCR enabled - auto-starting detection")
                     } else {
                         arViewModel.isDetectionActive = false
                         arViewModel.clearTextOverlays()
-                        print("📦 Instant OCR disabled - switching to box mode")
+                        Logger.debug("📦 Instant OCR disabled - switching to box mode")
                     }
                 }
             }
