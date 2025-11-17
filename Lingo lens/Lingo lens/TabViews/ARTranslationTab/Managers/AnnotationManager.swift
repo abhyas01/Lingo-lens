@@ -249,9 +249,10 @@ class AnnotationManager: ObservableObject {
         // Apply user's preferred scale
         containerNode.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
 
-        // Make annotation always face the camera
+        // Make annotation always face the camera while staying upright
+        // Use Y-axis only to keep text readable (prevents upside-down/sideways rotation)
         let billboard = SCNBillboardConstraint()
-        billboard.freeAxes = [.X, .Y, .Z]
+        billboard.freeAxes = .Y
         containerNode.constraints = [billboard]
 
         return containerNode
