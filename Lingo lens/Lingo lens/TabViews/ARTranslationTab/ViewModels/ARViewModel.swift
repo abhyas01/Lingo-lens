@@ -130,13 +130,13 @@ class ARViewModel: ObservableObject {
     
         if let savedCode = savedLanguageCode,
            let savedLanguage = availableLanguages.first(where: { $0.shortName() == savedCode }) {
-            
+
             // Use previously saved language if available
             self.selectedLanguage = savedLanguage
-        } else if !availableLanguages.isEmpty {
-            
+        } else if let firstLanguage = availableLanguages.first {
+
             // Default to first available language if saved one isn't available
-            self.selectedLanguage = availableLanguages.first!
+            self.selectedLanguage = firstLanguage
             DataManager.shared.saveSelectedLanguageCode(selectedLanguage.shortName())
         }
     }

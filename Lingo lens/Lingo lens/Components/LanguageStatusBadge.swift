@@ -10,6 +10,13 @@ import SwiftUI
 /// Badge showing whether a language is available offline
 struct LanguageStatusBadge: View {
 
+    // MARK: - Constants
+
+    private static let compactFontSize: CGFloat = 10
+    private static let standardFontSize: CGFloat = 12
+
+    // MARK: - Nested Types
+
     enum Status {
         case downloaded
         case needsDownload
@@ -55,7 +62,7 @@ struct LanguageStatusBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: status.icon)
-                .font(.system(size: compact ? 10 : 12))
+                .font(.system(size: compact ? Self.compactFontSize : Self.standardFontSize))
 
             if !compact {
                 Text(status.text)

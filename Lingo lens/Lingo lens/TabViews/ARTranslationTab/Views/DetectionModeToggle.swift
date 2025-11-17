@@ -10,6 +10,16 @@ import SwiftUI
 /// Toggle control for switching between object and text detection modes
 struct DetectionModeToggle: View {
 
+    // MARK: - Constants
+
+    private static let labelPaddingHorizontal: CGFloat = 12
+    private static let labelPaddingVertical: CGFloat = 4
+    private static let segmentedMaxWidth: CGFloat = 200
+    private static let togglePaddingHorizontal: CGFloat = 12
+    private static let togglePaddingVertical: CGFloat = 6
+
+    // MARK: - Properties
+
     @ObservedObject var arViewModel: ARViewModel
 
     var body: some View {
@@ -19,8 +29,8 @@ struct DetectionModeToggle: View {
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
+                .padding(.horizontal, Self.labelPaddingHorizontal)
+                .padding(.vertical, Self.labelPaddingVertical)
                 .background(Color.black.opacity(0.5))
                 .cornerRadius(8)
 
@@ -39,7 +49,7 @@ struct DetectionModeToggle: View {
                 .tag(ARViewModel.DetectionMode.text)
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 200)
+            .frame(maxWidth: Self.segmentedMaxWidth)
             .onChange(of: arViewModel.detectionMode) { oldMode, newMode in
                 // Clear overlays when switching modes
                 if newMode == .text {
@@ -74,8 +84,8 @@ struct DetectionModeToggle: View {
                         .font(.caption)
                         .foregroundColor(.white)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, Self.togglePaddingHorizontal)
+                .padding(.vertical, Self.togglePaddingVertical)
                 .background(Color.black.opacity(0.6))
                 .cornerRadius(8)
                 .onChange(of: arViewModel.instantOCRMode) { oldValue, newValue in

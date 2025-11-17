@@ -343,7 +343,11 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                 let distance = hypot(dx, dy)
                 
                 // Keep track of closest annotation
-                if closestAnnotation == nil || distance < closestAnnotation!.distance {
+                if let current = closestAnnotation {
+                    if distance < current.distance {
+                        closestAnnotation = (distance, annotation.originalText)
+                    }
+                } else {
                     closestAnnotation = (distance, annotation.originalText)
                 }
             }
@@ -395,7 +399,11 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             let distance = hypot(dx, dy)
             
             // Keep track of closest annotation
-            if closestAnnotation == nil || distance < closestAnnotation!.distance {
+            if let current = closestAnnotation {
+                if distance < current.distance {
+                    closestAnnotation = (distance, index, annotation.originalText)
+                }
+            } else {
                 closestAnnotation = (distance, index, annotation.originalText)
             }
         }

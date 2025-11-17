@@ -10,17 +10,26 @@ import SwiftUI
 /// Badge showing language detection confidence
 struct LanguageConfidenceBadge: View {
 
+    // MARK: - Constants
+
+    private static let iconFontSize: CGFloat = 10
+    private static let highConfidenceThreshold = 0.8
+    private static let mediumConfidenceThreshold = 0.6
+    private static let percentageMultiplier = 100.0
+
+    // MARK: - Properties
+
     let confidence: Double  // 0.0 to 1.0
     let languageName: String
 
     private var confidencePercent: Int {
-        Int(confidence * 100)
+        Int(confidence * Self.percentageMultiplier)
     }
 
     private var confidenceColor: Color {
-        if confidence >= 0.8 {
+        if confidence >= Self.highConfidenceThreshold {
             return .green
-        } else if confidence >= 0.6 {
+        } else if confidence >= Self.mediumConfidenceThreshold {
             return .yellow
         } else {
             return .orange
@@ -28,9 +37,9 @@ struct LanguageConfidenceBadge: View {
     }
 
     private var confidenceIcon: String {
-        if confidence >= 0.8 {
+        if confidence >= Self.highConfidenceThreshold {
             return "checkmark.seal.fill"
-        } else if confidence >= 0.6 {
+        } else if confidence >= Self.mediumConfidenceThreshold {
             return "checkmark.seal"
         } else {
             return "exclamationmark.triangle"
@@ -40,7 +49,7 @@ struct LanguageConfidenceBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: confidenceIcon)
-                .font(.system(size: 10))
+                .font(.system(size: Self.iconFontSize))
 
             Text("\(languageName) \(confidencePercent)%")
                 .font(.caption2)

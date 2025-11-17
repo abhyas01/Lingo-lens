@@ -32,8 +32,11 @@ class TranslatorViewModel: ObservableObject {
     private let speechRecognitionManager = SpeechRecognitionManager()
     private var debounceTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
+
+    // Constants
     private let maxCharacterLimit = 5000
     private let maxHistoryItems = 20
+    private let debounceIntervalMs = 500
 
     // MARK: - Computed Properties
 
@@ -205,7 +208,7 @@ class TranslatorViewModel: ObservableObject {
 
     private func setupTextObservation() {
         $inputText
-            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(debounceIntervalMs), scheduler: RunLoop.main)
             .sink { [weak self] text in
                 guard let self = self, !text.isEmpty else { return }
                 Task {
