@@ -213,9 +213,9 @@ struct ARTranslationView: View {
             
             // AR camera view container
             ARViewContainer(arViewModel: arViewModel, translationService: translationService)
-            
-            // Detection box overlay (only shown when detection is active)
-            if arViewModel.isDetectionActive {
+
+            // Detection box overlay (only shown when detection is active and NOT in instant OCR mode)
+            if arViewModel.isDetectionActive && !arViewModel.instantOCRMode {
                 boundingBoxView
             }
             

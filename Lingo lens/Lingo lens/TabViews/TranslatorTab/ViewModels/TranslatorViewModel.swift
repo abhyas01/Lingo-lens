@@ -120,6 +120,9 @@ class TranslatorViewModel: ObservableObject {
             let response = try await session.translate(inputText)
             translatedText = response.targetText
 
+            // Haptic feedback for successful translation
+            HapticManager.shared.translationSuccess()
+
             // Add to history
             addToHistory(
                 original: inputText,
@@ -129,8 +132,11 @@ class TranslatorViewModel: ObservableObject {
             )
 
         } catch {
-            errorMessage = "Translation failed: \(error.localizedDescription)"
+            errorMessage = "Translation Failed:\n• Check your connection\n• Download language for offline\n• Verify text is valid"
             translatedText = ""
+
+            // Haptic feedback for error
+            HapticManager.shared.error()
         }
 
         isTranslating = false
@@ -140,6 +146,9 @@ class TranslatorViewModel: ObservableObject {
     func swapLanguages() {
         // Can't swap if auto-detect is enabled
         guard let source = sourceLanguage else { return }
+
+        // Haptic feedback for swap
+        HapticManager.shared.selection()
 
         let temp = source
         sourceLanguage = targetLanguage
@@ -170,6 +179,7 @@ class TranslatorViewModel: ObservableObject {
     func copyTranslation() {
         #if os(iOS)
         UIPasteboard.general.string = translatedText
+        HapticManager.shared.copied()
         #endif
     }
 

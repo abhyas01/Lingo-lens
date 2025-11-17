@@ -140,28 +140,36 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         let deviceOrientation = UIDevice.current.orientation
         let exifOrientation = deviceOrientation.exifOrientation
         
-        // Convert screen ROI (the yellow bounding box) to normalized coordinates (0-1 range)
-        // Required by Vision framework for specifying the crop region
-        let screenWidth = sceneView.bounds.width
-        let screenHeight = sceneView.bounds.height
-        let roi = arViewModel.adjustableROI
-        
-        // Convert screen coordinates to normalized coordinates
-        // The Vision framework uses a different coordinate system (bottom-left origin)
-        // That's why we need to adjust y-coordinate with 1.0 - value
-        var nx = roi.origin.x / screenWidth
-        var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight)
-        var nw = roi.width  / screenWidth
-        var nh = roi.height / screenHeight
-        
-        // Make sure coordinates stay within valid range (0-1)
-        if nx < 0 { nx = 0 }
-        if ny < 0 { ny = 0 }
-        if nx + nw > 1 { nw = 1 - nx }
-        if ny + nh > 1 { nh = 1 - ny }
-        
-        // Create a normalized ROI rect that will be captured
-        let normalizedROI = CGRect(x: nx, y: ny, width: nw, height: nh)
+        // Determine ROI based on instant OCR mode
+        let normalizedROI: CGRect
+
+        if arViewModel.instantOCRMode && arViewModel.detectionMode == .text {
+            // Instant OCR mode: full-screen detection
+            normalizedROI = CGRect(x: 0, y: 0, width: 1, height: 1)
+        } else {
+            // Convert screen ROI (the yellow bounding box) to normalized coordinates (0-1 range)
+            // Required by Vision framework for specifying the crop region
+            let screenWidth = sceneView.bounds.width
+            let screenHeight = sceneView.bounds.height
+            let roi = arViewModel.adjustableROI
+
+            // Convert screen coordinates to normalized coordinates
+            // The Vision framework uses a different coordinate system (bottom-left origin)
+            // That's why we need to adjust y-coordinate with 1.0 - value
+            var nx = roi.origin.x / screenWidth
+            var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight)
+            var nw = roi.width  / screenWidth
+            var nh = roi.height / screenHeight
+
+            // Make sure coordinates stay within valid range (0-1)
+            if nx < 0 { nx = 0 }
+            if ny < 0 { ny = 0 }
+            if nx + nw > 1 { nw = 1 - nx }
+            if ny + nh > 1 { nh = 1 - ny }
+
+            // Create a normalized ROI rect that will be captured
+            normalizedROI = CGRect(x: nx, y: ny, width: nw, height: nh)
+        }
          
         // Detach the processing from the ARFrame by using a separate method
         processFrameData(pixelBuffer: pixelBuffer,

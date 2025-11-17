@@ -55,7 +55,7 @@ class ARViewModel: ObservableObject {
     @Published var isAddingAnnotation = false
     
     // Error message when annotation placement fails
-    @Published var placementErrorMessage = "Couldn't anchor label on object. Try adjusting your angle or moving closer to help detect a surface."
+    @Published var placementErrorMessage = "Couldn't place label. Try:\n• Move closer to the surface\n• Point at a flat area\n• Ensure good lighting"
     
     // Controls delete confirmation alert
     @Published var showDeleteConfirmation = false
@@ -80,6 +80,9 @@ class ARViewModel: ObservableObject {
 
     // Text overlay nodes for AR scene
     var textOverlayNodes: [(node: SCNNode, textItem: RecognizedTextItem)] = []
+
+    // Instant OCR mode - full-screen detection without yellow box
+    @Published var instantOCRMode: Bool = false
     
     // Currently selected language for translations
     // Persists to UserDefaults when changed
@@ -171,11 +174,14 @@ class ARViewModel: ObservableObject {
             let (node, _, _) = self.annotationNodes[index]
             print("🗑️ Removing annotation from scene")
             node.removeFromParentNode()
-            
+
             // Remove from our tracking array
             self.annotationNodes.remove(at: index)
             print("✅ Annotation deleted successfully - \(self.annotationNodes.count) annotations remaining")
-            
+
+            // Haptic feedback for deletion
+            HapticManager.shared.annotationRemoved()
+
             // Reset state
             self.isDeletingAnnotation = false
             self.annotationToDelete = nil
@@ -295,7 +301,10 @@ class ARViewModel: ObservableObject {
                                                result.worldTransform.columns.3.z)
                     self.annotationNodes.append((annotationNode, self.detectedObjectName, worldPos))
                     sceneView.scene.rootNode.addChildNode(annotationNode)
-                    
+
+                    // Haptic feedback for successful placement
+                    HapticManager.shared.annotationPlaced()
+
                     // Reset state after a short delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.isAddingAnnotation = false
@@ -306,10 +315,13 @@ class ARViewModel: ObservableObject {
                 // No plane found - show placement error
                 DispatchQueue.main.async {
                     self.isAddingAnnotation = false
-                    
+
+                    // Haptic feedback for error
+                    HapticManager.shared.error()
+
                     if !self.showPlacementError {
                         self.showPlacementError = true
-                        
+
                         // Hide error after 4 seconds
                         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                             self.showPlacementError = false

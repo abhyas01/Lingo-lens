@@ -107,7 +107,7 @@ class ConversationViewModel: ObservableObject {
                 }
             )
         } catch {
-            errorMessage = "Failed to start listening: \(error.localizedDescription)"
+            errorMessage = "Microphone Error:\n• Check Settings > Privacy > Microphone\n• Grant Lingo-lens access\n• Close other apps using the microphone"
         }
     }
 
@@ -126,6 +126,9 @@ class ConversationViewModel: ObservableObject {
 
         // Switch speaker
         currentSpeaker = currentSpeaker == .me ? .them : .me
+
+        // Haptic feedback for speaker change
+        HapticManager.shared.speakerChange()
 
         // Restart recording with new language
         if isListening {
@@ -168,13 +171,16 @@ class ConversationViewModel: ObservableObject {
             // Add to messages
             addMessage(message)
 
+            // Haptic feedback for successful translation
+            HapticManager.shared.translationSuccess()
+
             // Play translation if enabled
             if autoPlayTranslation {
                 playTranslation(for: message)
             }
 
         } catch {
-            errorMessage = "Translation failed: \(error.localizedDescription)"
+            errorMessage = "Translation Failed:\n• Check your internet connection\n• Download languages for offline use\n• Try again in a moment"
         }
     }
 
@@ -187,11 +193,23 @@ class ConversationViewModel: ObservableObject {
 
             // Check which language matches better
             if detectedLanguage.minimalIdentifier == myLangCode {
+                let previousSpeaker = currentSpeaker
                 currentSpeaker = .me
                 print("🔍 Auto-detected speaker: Me (\(myLangCode))")
+
+                // Haptic feedback only if speaker actually changed
+                if previousSpeaker != .me {
+                    HapticManager.shared.speakerChange()
+                }
             } else if detectedLanguage.minimalIdentifier == theirLangCode {
+                let previousSpeaker = currentSpeaker
                 currentSpeaker = .them
                 print("🔍 Auto-detected speaker: Them (\(theirLangCode))")
+
+                // Haptic feedback only if speaker actually changed
+                if previousSpeaker != .them {
+                    HapticManager.shared.speakerChange()
+                }
             }
             // If neither matches perfectly, keep current speaker
         }
@@ -234,5 +252,8 @@ class ConversationViewModel: ObservableObject {
         let temp = myLanguage
         myLanguage = theirLanguage
         theirLanguage = temp
+
+        // Haptic feedback for language swap
+        HapticManager.shared.selection()
     }
 }
