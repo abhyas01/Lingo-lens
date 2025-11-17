@@ -168,7 +168,7 @@ class ARViewModel: ObservableObject {
         isDeletingAnnotation = true
         
         // Small delay to show deletion is happening
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.annotationAddDelay) { [weak self] in
             guard let self = self else { return }
             
             // Get the annotation and remove from scene
@@ -229,7 +229,7 @@ class ARViewModel: ObservableObject {
         }
         
         // Small delay before restarting for better stability
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.annotationAddDelay) {
             sceneView.backgroundColor = .black
             
             // Configure AR with plane detection and environment texturing
@@ -307,7 +307,7 @@ class ARViewModel: ObservableObject {
                     HapticManager.shared.annotationPlaced()
 
                     // Reset state after a short delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.annotationAddDelay) {
                         self.isAddingAnnotation = false
                     }
                 }
@@ -324,7 +324,7 @@ class ARViewModel: ObservableObject {
                         self.showPlacementError = true
 
                         // Hide error after 4 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.placementErrorDuration) {
                             self.showPlacementError = false
                         }
                     }
@@ -484,7 +484,7 @@ class ARViewModel: ObservableObject {
 
         // Calculate size
         let textSize = labelNode.frame.size
-        let padding: CGFloat = 20
+        let padding: CGFloat = ARConstants.textOverlayPadding
 
         // Create background with rounded corners
         let backgroundSize = CGSize(
@@ -496,8 +496,8 @@ class ARViewModel: ObservableObject {
         scene.backgroundColor = .clear
 
         // Add semi-transparent black background
-        let background = SKShapeNode(rectOf: backgroundSize, cornerRadius: backgroundSize.height * 0.3)
-        background.fillColor = UIColor.black.withAlphaComponent(0.85)
+        let background = SKShapeNode(rectOf: backgroundSize, cornerRadius: backgroundSize.height * ARConstants.textOverlayCornerRadiusRatio)
+        background.fillColor = UIColor.black.withAlphaComponent(ARConstants.textOverlayBackgroundAlpha)
         background.strokeColor = .clear
         background.position = CGPoint(x: backgroundSize.width / 2, y: backgroundSize.height / 2)
         scene.addChild(background)
@@ -508,7 +508,7 @@ class ARViewModel: ObservableObject {
 
         // Create plane to display the sprite
         let aspectRatio = backgroundSize.width / backgroundSize.height
-        let planeHeight: CGFloat = 0.05  // 5cm height
+        let planeHeight: CGFloat = ARConstants.textOverlayPlaneHeight height
         let planeWidth = planeHeight * aspectRatio
 
         let plane = SCNPlane(width: planeWidth, height: planeHeight)
@@ -527,7 +527,7 @@ class ARViewModel: ObservableObject {
         textNode.constraints = [billboardConstraint]
 
         // Add subtle glow effect
-        plane.firstMaterial?.emission.contents = UIColor.white.withAlphaComponent(0.2)
+        plane.firstMaterial?.emission.contents = UIColor.white.withAlphaComponent(ARConstants.textOverlayEmissionAlpha)
 
         return textNode
     }
@@ -538,9 +538,9 @@ class ARViewModel: ObservableObject {
         let textHeight = item.boundingBox.height * viewSize.height
 
         // Map screen height to font size (empirically determined)
-        let baseFontSize: CGFloat = 200
-        let scaleFactor = textHeight / 20.0
-        return baseFontSize * max(0.5, min(scaleFactor, 3.0))
+        let baseFontSize = ARConstants.baseFontSize
+        let scaleFactor = textHeight / ARConstants.fontSizeHeightDivisor
+        return baseFontSize * max(ARConstants.minFontSizeScale, min(scaleFactor, ARConstants.maxFontSizeScale))
     }
     
     // MARK: - Annotation Visuals
@@ -551,11 +551,11 @@ class ARViewModel: ObservableObject {
         let validatedText = text.isEmpty ? "Unknown Object" : text
 
         // Size calculations based on text length
-        let baseWidth: CGFloat = 0.18
-        let extraWidthPerChar: CGFloat = 0.005
-        let maxTextWidth: CGFloat = 0.40
-        let minTextWidth: CGFloat = 0.18
-        let planeHeight: CGFloat = 0.09
+        let baseWidth = ARConstants.annotationBaseWidth
+        let extraWidthPerChar = ARConstants.annotationExtraWidthPerChar
+        let maxTextWidth = ARConstants.annotationMaxWidth
+        let minTextWidth = ARConstants.annotationMinWidth
+        let planeHeight = ARConstants.annotationHeight
         
         // Adjust width based on text length with min/max constraints
         let textCount = CGFloat(validatedText.count)
@@ -564,7 +564,7 @@ class ARViewModel: ObservableObject {
         
         // Create a plane with rounded corners
         let plane = SCNPlane(width: planeWidth, height: planeHeight)
-        plane.cornerRadius = 0.015
+        plane.cornerRadius = ARConstants.annotationCornerRadius
         
         // Use SpriteKit scene for the plane's contents
         plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: validatedText, width: planeWidth, height: planeHeight)
@@ -581,7 +581,7 @@ class ARViewModel: ObservableObject {
         
         // Position the plane slightly above the anchor point
         containerNode.addChildNode(planeNode)
-        planeNode.position = SCNVector3(0, 0.04, 0)
+        planeNode.position = SCNVector3(0, ARConstants.annotationVerticalOffset, 0)
         containerNode.eulerAngles.x = -Float.pi / 2
         
         // Apply user's preferred scale
@@ -598,14 +598,14 @@ class ARViewModel: ObservableObject {
     /// Creates a 2D SpriteKit scene for the annotation's visual appearance
     /// Handles text layout, background capsule, and styling
     private func makeCapsuleSKScene(with text: String, width: CGFloat, height: CGFloat) -> SKScene {
-        let sceneSize = CGSize(width: 400, height: 140)
+        let sceneSize = CGSize(width: SpriteKitConstants.annotationSceneWidth, height: SpriteKitConstants.annotationSceneHeight)
         let scene = SKScene(size: sceneSize)
         scene.scaleMode = .aspectFit
         scene.backgroundColor = .clear
         
         // Create white capsule background
         let bgRect = CGRect(origin: .zero, size: sceneSize)
-        let background = SKShapeNode(rect: bgRect, cornerRadius: 50)
+        let background = SKShapeNode(rect: bgRect, cornerRadius: SpriteKitConstants.capsuleCornerRadius)
         background.fillColor = .white
         background.strokeColor = .clear
         scene.addChild(background)
@@ -619,16 +619,16 @@ class ARViewModel: ObservableObject {
         // Add chevron icon to indicate tappable
         let chevron = SKLabelNode(fontNamed: "SF Pro")
         chevron.text = "›"
-        chevron.fontSize = 36
+        chevron.fontSize = SpriteKitConstants.chevronFontSize
         chevron.fontColor = .gray
         chevron.verticalAlignmentMode = .center
         chevron.horizontalAlignmentMode = .center
-        chevron.position = CGPoint(x: sceneSize.width - 40, y: -sceneSize.height / 2)
+        chevron.position = CGPoint(x: sceneSize.width - SpriteKitConstants.chevronXOffset, y: -sceneSize.height / 2)
         containerNode.addChild(chevron)
         
         // Process text into lines that fit the capsule
-        let processedLines = processTextIntoLines(text, maxCharsPerLine: 20)
-        let lineHeight: CGFloat = 40
+        let processedLines = processTextIntoLines(text, maxCharsPerLine: TextProcessingConstants.maxCharsPerLine)
+        let lineHeight = SpriteKitConstants.lineHeight
         let totalTextHeight = CGFloat(processedLines.count) * lineHeight
         let startY = (sceneSize.height + totalTextHeight) / 2 - lineHeight / 2
         
@@ -636,14 +636,14 @@ class ARViewModel: ObservableObject {
         for (i, line) in processedLines.enumerated() {
             let label = SKLabelNode(fontNamed: "Helvetica-Bold")
             label.text = line
-            label.fontSize = 32
+            label.fontSize = SpriteKitConstants.labelFontSize
             label.fontColor = .black
             label.verticalAlignmentMode = .center
             label.horizontalAlignmentMode = .center
             
             let yPosition = startY - (CGFloat(i) * lineHeight)
             label.position = CGPoint(
-                x: (sceneSize.width - 40) / 2,
+                x: (sceneSize.width - SpriteKitConstants.chevronXOffset) / 2,
                 y: -yPosition
             )
             containerNode.addChild(label)
@@ -659,10 +659,10 @@ class ARViewModel: ObservableObject {
         var words = text.split(separator: " ").map(String.init)
         var currentLine = ""
         
-        let ellipsis = "..."
+        let ellipsis = TextProcessingConstants.ellipsis
         
         // Process words into lines with max 2 lines total
-        while !words.isEmpty && lines.count < 2 {
+        while !words.isEmpty && lines.count < TextProcessingConstants.maxLines {
             let word = words[0]
             let testLine = currentLine.isEmpty ? word : currentLine + " " + word
             
@@ -674,7 +674,7 @@ class ARViewModel: ObservableObject {
             } else {
                 
                 // Word doesn't fit - handle overflow
-                if lines.count == 1 {
+                if lines.count == (TextProcessingConstants.maxLines - 1) {
                     
                     // On second line - add ellipsis and stop
                     if !currentLine.isEmpty {
