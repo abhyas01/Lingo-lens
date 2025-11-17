@@ -10,6 +10,7 @@ import SceneKit
 import Vision
 import SwiftUI
 import Translation
+import UIKit
 
 /// Connects AR session events to the ARViewModel
 /// Handles camera frames, detects objects, and manages user interactions with AR annotations
@@ -405,7 +406,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
 
             arViewModel.isDetectionActive = false
             arViewModel.detectedObjectName = ""
-            
+
             let textToShow = closest.text
             arViewModel.showDeleteAnnotationAlert(index: closest.index, objectName: textToShow)
         } else {
@@ -413,4 +414,5 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
 
+}  // End of ARCoordinator class
 }

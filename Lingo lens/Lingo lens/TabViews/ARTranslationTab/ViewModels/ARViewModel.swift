@@ -8,6 +8,7 @@
 import SwiftUI
 import ARKit
 import SceneKit
+import UIKit
 
 /// Central view model that manages all AR translation features
 /// Controls object detection state, annotations, and camera session
