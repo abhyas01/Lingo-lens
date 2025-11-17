@@ -51,10 +51,12 @@ struct ControlBar: View {
     private var settingsButton: some View {
         Button(action: {
             print("👆 Button pressed: Label Settings panel toggle")
+            HapticManager.shared.buttonTap()
+
             withAnimation {
                 settingsViewModel.toggleExpanded()
             }
-            
+
             // Stop detection when settings panel opens
             if settingsViewModel.isExpanded {
                 print("⚙️ Label Settings panel opened - stopping detection")
@@ -82,9 +84,11 @@ struct ControlBar: View {
     // Center button - toggles object detection
     private var detectionToggleButton: some View {
         Button(action: {
+            HapticManager.shared.buttonTap()
+
             if arViewModel.isDetectionActive {
                 print("👆 Button pressed: Stop detection")
-                
+
                 // If active, stop detection
                 arViewModel.isDetectionActive = false
                 arViewModel.detectedObjectName = ""
@@ -96,7 +100,7 @@ struct ControlBar: View {
                     print("⚙️ Closing label settings panel before starting detection")
                     settingsViewModel.toggleExpanded()
                 }
-                
+
                 // Then check language and start detection
                 print("🔍 Checking language availability before starting detection")
                 checkLanguageAndStartDetection()
@@ -178,6 +182,7 @@ struct ControlBar: View {
                         return
                     }
                     print("👆 Button pressed: Add annotation for \"\(arViewModel.detectedObjectName)\"")
+                    HapticManager.shared.buttonTap()
                     arViewModel.addAnnotation()
                 }) {
                     Image(systemName: "plus.circle.fill")

@@ -9,6 +9,8 @@ import ARKit
 import SceneKit
 import Vision
 import SwiftUI
+import Translation
+import UIKit
 
 /// Connects AR session events to the ARViewModel
 /// Handles camera frames, detects objects, and manages user interactions with AR annotations
@@ -34,9 +36,16 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     
     // Object detection logic is handled by separate manager
     private let objectDetectionManager = ObjectDetectionManager()
-    
-    init(arViewModel: ARViewModel) {
+
+    // Text recognition logic
+    private let textRecognitionManager = TextRecognitionManager()
+
+    // Translation service for recognized text
+    private var translationService: TranslationService?
+
+    init(arViewModel: ARViewModel, translationService: TranslationService? = nil) {
         self.arViewModel = arViewModel
+        self.translationService = translationService
         super.init()
     }
     
@@ -132,28 +141,36 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         let deviceOrientation = UIDevice.current.orientation
         let exifOrientation = deviceOrientation.exifOrientation
         
-        // Convert screen ROI (the yellow bounding box) to normalized coordinates (0-1 range)
-        // Required by Vision framework for specifying the crop region
-        let screenWidth = sceneView.bounds.width
-        let screenHeight = sceneView.bounds.height
-        let roi = arViewModel.adjustableROI
-        
-        // Convert screen coordinates to normalized coordinates
-        // The Vision framework uses a different coordinate system (bottom-left origin)
-        // That's why we need to adjust y-coordinate with 1.0 - value
-        var nx = roi.origin.x / screenWidth
-        var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight)
-        var nw = roi.width  / screenWidth
-        var nh = roi.height / screenHeight
-        
-        // Make sure coordinates stay within valid range (0-1)
-        if nx < 0 { nx = 0 }
-        if ny < 0 { ny = 0 }
-        if nx + nw > 1 { nw = 1 - nx }
-        if ny + nh > 1 { nh = 1 - ny }
-        
-        // Create a normalized ROI rect that will be captured
-        let normalizedROI = CGRect(x: nx, y: ny, width: nw, height: nh)
+        // Determine ROI based on instant OCR mode
+        let normalizedROI: CGRect
+
+        if arViewModel.instantOCRMode && arViewModel.detectionMode == .text {
+            // Instant OCR mode: full-screen detection
+            normalizedROI = CGRect(x: 0, y: 0, width: 1, height: 1)
+        } else {
+            // Convert screen ROI (the yellow bounding box) to normalized coordinates (0-1 range)
+            // Required by Vision framework for specifying the crop region
+            let screenWidth = sceneView.bounds.width
+            let screenHeight = sceneView.bounds.height
+            let roi = arViewModel.adjustableROI
+
+            // Convert screen coordinates to normalized coordinates
+            // The Vision framework uses a different coordinate system (bottom-left origin)
+            // That's why we need to adjust y-coordinate with 1.0 - value
+            var nx = roi.origin.x / screenWidth
+            var ny = 1.0 - ((roi.origin.y + roi.height) / screenHeight)
+            var nw = roi.width  / screenWidth
+            var nh = roi.height / screenHeight
+
+            // Make sure coordinates stay within valid range (0-1)
+            if nx < 0 { nx = 0 }
+            if ny < 0 { ny = 0 }
+            if nx + nw > 1 { nw = 1 - nx }
+            if ny + nh > 1 { nh = 1 - ny }
+
+            // Create a normalized ROI rect that will be captured
+            normalizedROI = CGRect(x: nx, y: ny, width: nw, height: nh)
+        }
          
         // Detach the processing from the ARFrame by using a separate method
         processFrameData(pixelBuffer: pixelBuffer,
@@ -191,12 +208,26 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     private func processFrameData(pixelBuffer: CVPixelBuffer,
                                  exifOrientation: CGImagePropertyOrientation,
                                  normalizedROI: CGRect) {
-        
-        // Send the cropped region to object detection manager
-        objectDetectionManager.detectObjectCropped(
-            pixelBuffer: pixelBuffer,
-            exifOrientation: exifOrientation,
-            normalizedROI: normalizedROI
+
+        // Route to appropriate detection based on mode
+        if arViewModel.detectionMode == .text {
+            // Text recognition mode
+            textRecognitionManager.recognizeText(in: pixelBuffer, roi: normalizedROI) { [weak self] items in
+                guard let self = self else { return }
+
+                DispatchQueue.main.async {
+                    self.arViewModel.recognizedTexts = items
+
+                    // Translate recognized texts
+                    self.translateAndDisplayTexts(items)
+                }
+            }
+        } else {
+            // Object detection mode (existing)
+            objectDetectionManager.detectObjectCropped(
+                pixelBuffer: pixelBuffer,
+                exifOrientation: exifOrientation,
+                normalizedROI: normalizedROI
         ) { [weak self] result in
             
             // Update the UI with detection result on main thread using weak self
@@ -206,7 +237,48 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             }
         }
     }
-    
+
+    /// Translates recognized texts and creates AR overlays
+    private func translateAndDisplayTexts(_ items: [RecognizedTextItem]) {
+        guard let sceneView = arViewModel.sceneView,
+              let translationService = translationService else { return }
+
+        // Combine adjacent texts into phrases for better translation
+        let combinedItems = textRecognitionManager.combineAdjacentTexts(items)
+
+        // Translate each recognized text
+        Task {
+            var translatedItems: [RecognizedTextItem] = []
+
+            for var item in combinedItems {
+                // Translate the text
+                let targetLanguage = await arViewModel.selectedLanguage.language
+
+                do {
+                    let configuration = TranslationSession.Configuration(
+                        source: Locale.Language(identifier: "en"), // Auto-detect would be better
+                        target: targetLanguage
+                    )
+
+                    let session = TranslationSession(configuration: configuration)
+                    let response = try await session.translate(item.text)
+
+                    item.translatedText = response.targetText
+                    translatedItems.append(item)
+                } catch {
+                    print("Translation error: \(error)")
+                    item.translatedText = item.text  // Fallback to original
+                    translatedItems.append(item)
+                }
+            }
+
+            // Create AR overlays on main thread
+            await MainActor.run {
+                self.arViewModel.createTextOverlays(for: translatedItems, in: sceneView)
+            }
+        }
+    }
+
     /// Updates the loading message only if it's different from current message
     /// Prevents unnecessary UI updates when message hasn't changed
     private func updateLoadingMessage(_ message: String) {
@@ -214,7 +286,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             self.arViewModel.loadingMessage = message
         }
     }
-    
+
     // MARK: - Annotation Interaction
 
     /// Handles taps on AR annotations
@@ -271,7 +343,11 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
                 let distance = hypot(dx, dy)
                 
                 // Keep track of closest annotation
-                if closestAnnotation == nil || distance < closestAnnotation!.distance {
+                if let current = closestAnnotation {
+                    if distance < current.distance {
+                        closestAnnotation = (distance, annotation.originalText)
+                    }
+                } else {
                     closestAnnotation = (distance, annotation.originalText)
                 }
             }
@@ -323,7 +399,11 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             let distance = hypot(dx, dy)
             
             // Keep track of closest annotation
-            if closestAnnotation == nil || distance < closestAnnotation!.distance {
+            if let current = closestAnnotation {
+                if distance < current.distance {
+                    closestAnnotation = (distance, index, annotation.originalText)
+                }
+            } else {
                 closestAnnotation = (distance, index, annotation.originalText)
             }
         }
@@ -334,7 +414,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
 
             arViewModel.isDetectionActive = false
             arViewModel.detectedObjectName = ""
-            
+
             let textToShow = closest.text
             arViewModel.showDeleteAnnotationAlert(index: closest.index, objectName: textToShow)
         } else {
@@ -342,4 +422,5 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
 
+}  // End of ARCoordinator class
 }

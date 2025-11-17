@@ -24,10 +24,12 @@ struct ContentView: View {
     // Navigation tabs for the app's main sections
     enum Tab {
         case arTranslationView
+        case translatorView
+        case conversationView
         case savedWordsView
         case settingsView
     }
-    
+
     // Currently selected tab in the UI
     @State private var selectedTab: Tab = .arTranslationView
 
@@ -37,16 +39,28 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             ARTranslationView(arViewModel: arViewModel)
                 .tabItem {
-                    Label("Translate", systemImage: "camera.viewfinder")
+                    Label("AR Translate", systemImage: "camera.viewfinder")
                 }
                 .tag(Tab.arTranslationView)
-            
+
+            TranslatorView(translationService: translationService)
+                .tabItem {
+                    Label("Translator", systemImage: "character.bubble")
+                }
+                .tag(Tab.translatorView)
+
+            ConversationListenerView(translationService: translationService)
+                .tabItem {
+                    Label("Conversation", systemImage: "bubble.left.and.bubble.right")
+                }
+                .tag(Tab.conversationView)
+
             SavedWords()
                 .tabItem {
-                    Label("Saved Words", systemImage: "bookmark.fill")
+                    Label("Saved", systemImage: "bookmark.fill")
                 }
                 .tag(Tab.savedWordsView)
-                
+
             SettingsTabView(arViewModel: arViewModel)
                 .tabItem {
                     Label("Settings", systemImage: "gear")
@@ -75,7 +89,8 @@ struct ContentView: View {
         
         .onChange(of: selectedTab) { oldValue, newValue in
             print("📑 Tab changed from \(oldValue) to \(newValue)")
-            if newValue == .arTranslationView || newValue == .savedWordsView {
+            if newValue == .arTranslationView || newValue == .translatorView ||
+               newValue == .conversationView || newValue == .savedWordsView {
                 Task {
                     print("🔊 Preparing audio session for tab: \(newValue)")
                     SpeechManager.shared.prepareAudioSession()
@@ -85,20 +100,22 @@ struct ContentView: View {
                 SpeechManager.shared.deactivateAudioSession()
             }
         }
-        
+
         .onAppear {
-            if selectedTab == .arTranslationView || selectedTab == .savedWordsView {
+            if selectedTab == .arTranslationView || selectedTab == .translatorView ||
+               selectedTab == .conversationView || selectedTab == .savedWordsView {
                 Task {
                     SpeechManager.shared.prepareAudioSession()
                 }
             }
         }
-        
+
         // When app becomes active again from background
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            
+
             // Prepare audio session if we're on a tab that needs it
-            if selectedTab == .arTranslationView || selectedTab == .savedWordsView {
+            if selectedTab == .arTranslationView || selectedTab == .translatorView ||
+               selectedTab == .conversationView || selectedTab == .savedWordsView {
                 Task {
                     SpeechManager.shared.prepareAudioSession()
                 }

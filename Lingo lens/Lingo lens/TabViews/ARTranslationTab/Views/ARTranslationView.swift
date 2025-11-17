@@ -212,21 +212,37 @@ struct ARTranslationView: View {
         ZStack {
             
             // AR camera view container
-            ARViewContainer(arViewModel: arViewModel)
-            
-            // Detection box overlay (only shown when detection is active)
-            if arViewModel.isDetectionActive {
+            ARViewContainer(arViewModel: arViewModel, translationService: translationService)
+
+            // Detection box overlay (only shown when detection is active and NOT in instant OCR mode)
+            if arViewModel.isDetectionActive && !arViewModel.instantOCRMode {
                 boundingBoxView
             }
             
             VStack {
-                
+
+                // Mode toggle at the top
+                DetectionModeToggle(arViewModel: arViewModel)
+                    .padding(.top, 10)
+
                 // Top section - shows detection status
                 if arViewModel.isDetectionActive {
-                    DetectionLabel(detectedObjectName: arViewModel.detectedObjectName)
-                        .padding(.top, 10)
+                    if arViewModel.detectionMode == .objects {
+                        DetectionLabel(detectedObjectName: arViewModel.detectedObjectName)
+                            .padding(.top, 10)
+                    } else {
+                        // Show text recognition status
+                        Text("\(arViewModel.recognizedTexts.count) text(s) found")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.blue.opacity(0.8))
+                            .cornerRadius(10)
+                            .padding(.top, 10)
+                    }
                 }
-                
+
                 // Error message when annotation placement fails
                 if arViewModel.showPlacementError {
                     Text(arViewModel.placementErrorMessage)
@@ -240,7 +256,7 @@ struct ARTranslationView: View {
                         .zIndex(1)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                
+
                 Spacer()
                 
                 // Bottom control bar

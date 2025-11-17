@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Lingo-lens needs microphone access to listen to conversations for real-time translation. Your audio is processed locally and never uploaded.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Lingo-lens uses speech recognition to transcribe and translate conversations in real-time. All processing happens on your device.</string>
+</dict>
 </plist>

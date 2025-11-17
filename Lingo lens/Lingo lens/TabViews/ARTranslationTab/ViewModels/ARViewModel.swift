@@ -8,19 +8,29 @@
 import SwiftUI
 import ARKit
 import SceneKit
+import UIKit
 
 /// Central view model that manages all AR translation features
 /// Controls object detection state, annotations, and camera session
 class ARViewModel: ObservableObject {
-    
+
     // Tracks whether the AR session is active or paused
     enum ARSessionState {
         case active
         case paused
     }
-    
+
+    // Detection mode: objects or text
+    enum DetectionMode {
+        case objects
+        case text
+    }
+
     // MARK: - Published States
-    
+
+    // Current detection mode (objects or text)
+    @Published var detectionMode: DetectionMode = .objects
+
     // Current state of the AR session (active/paused)
     @Published var sessionState: ARSessionState = .active
     
@@ -46,7 +56,7 @@ class ARViewModel: ObservableObject {
     @Published var isAddingAnnotation = false
     
     // Error message when annotation placement fails
-    @Published var placementErrorMessage = "Couldn't anchor label on object. Try adjusting your angle or moving closer to help detect a surface."
+    @Published var placementErrorMessage = "Couldn't place label. Try:\n• Move closer to the surface\n• Point at a flat area\n• Ensure good lighting"
     
     // Controls delete confirmation alert
     @Published var showDeleteConfirmation = false
@@ -62,9 +72,18 @@ class ARViewModel: ObservableObject {
     
     // Tracks if AR is setting up
     @Published var isARSessionLoading: Bool = true
-    
+
     // Current user-facing message explaining AR session status
     @Published var loadingMessage: String = "Setting up AR session..."
+
+    // Text recognition results
+    @Published var recognizedTexts: [RecognizedTextItem] = []
+
+    // Text overlay nodes for AR scene
+    var textOverlayNodes: [(node: SCNNode, textItem: RecognizedTextItem)] = []
+
+    // Instant OCR mode - full-screen detection without yellow box
+    @Published var instantOCRMode: Bool = false
     
     // Currently selected language for translations
     // Persists to UserDefaults when changed
@@ -111,13 +130,13 @@ class ARViewModel: ObservableObject {
     
         if let savedCode = savedLanguageCode,
            let savedLanguage = availableLanguages.first(where: { $0.shortName() == savedCode }) {
-            
+
             // Use previously saved language if available
             self.selectedLanguage = savedLanguage
-        } else if !availableLanguages.isEmpty {
-            
+        } else if let firstLanguage = availableLanguages.first {
+
             // Default to first available language if saved one isn't available
-            self.selectedLanguage = availableLanguages.first!
+            self.selectedLanguage = firstLanguage
             DataManager.shared.saveSelectedLanguageCode(selectedLanguage.shortName())
         }
     }
@@ -156,11 +175,14 @@ class ARViewModel: ObservableObject {
             let (node, _, _) = self.annotationNodes[index]
             print("🗑️ Removing annotation from scene")
             node.removeFromParentNode()
-            
+
             // Remove from our tracking array
             self.annotationNodes.remove(at: index)
             print("✅ Annotation deleted successfully - \(self.annotationNodes.count) annotations remaining")
-            
+
+            // Haptic feedback for deletion
+            HapticManager.shared.annotationRemoved()
+
             // Reset state
             self.isDeletingAnnotation = false
             self.annotationToDelete = nil
@@ -280,7 +302,10 @@ class ARViewModel: ObservableObject {
                                                result.worldTransform.columns.3.z)
                     self.annotationNodes.append((annotationNode, self.detectedObjectName, worldPos))
                     sceneView.scene.rootNode.addChildNode(annotationNode)
-                    
+
+                    // Haptic feedback for successful placement
+                    HapticManager.shared.annotationPlaced()
+
                     // Reset state after a short delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.isAddingAnnotation = false
@@ -291,10 +316,13 @@ class ARViewModel: ObservableObject {
                 // No plane found - show placement error
                 DispatchQueue.main.async {
                     self.isAddingAnnotation = false
-                    
+
+                    // Haptic feedback for error
+                    HapticManager.shared.error()
+
                     if !self.showPlacementError {
                         self.showPlacementError = true
-                        
+
                         // Hide error after 4 seconds
                         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                             self.showPlacementError = false
@@ -318,6 +346,201 @@ class ARViewModel: ObservableObject {
         }
         annotationNodes.removeAll()
         print("✅ All annotations cleared")
+    }
+
+    // MARK: - Text Overlay Management
+
+    /// Creates AR text overlays for recognized text items
+    func createTextOverlays(for items: [RecognizedTextItem], in sceneView: ARSCNView) {
+        // Remove old overlays
+        clearTextOverlays()
+
+        for item in items {
+            guard item.meetsConfidenceThreshold else { continue }
+
+            // Create text overlay node
+            if let overlayNode = createTextOverlayNode(for: item, in: sceneView) {
+                sceneView.scene.rootNode.addChildNode(overlayNode)
+
+                // Store reference
+                var updatedItem = item
+                updatedItem.worldPosition = overlayNode.worldPosition
+                textOverlayNodes.append((node: overlayNode, textItem: updatedItem))
+            }
+        }
+    }
+
+    /// Clears all text overlay nodes
+    func clearTextOverlays() {
+        for (node, _) in textOverlayNodes {
+            node.removeFromParentNode()
+        }
+        textOverlayNodes.removeAll()
+    }
+
+    /// Creates a text overlay node anchored to detected text
+    private func createTextOverlayNode(for item: RecognizedTextItem, in sceneView: ARSCNView) -> SCNNode? {
+        guard let frame = sceneView.session.currentFrame else { return nil }
+
+        // Convert normalized bounding box to screen coordinates
+        let viewSize = sceneView.bounds.size
+        let screenRect = CGRect(
+            x: item.boundingBox.origin.x * viewSize.width,
+            y: (1 - item.boundingBox.origin.y - item.boundingBox.height) * viewSize.height,
+            width: item.boundingBox.width * viewSize.width,
+            height: item.boundingBox.height * viewSize.height
+        )
+
+        // Get center point of text
+        let centerPoint = CGPoint(x: screenRect.midX, y: screenRect.midY)
+
+        // Perform robust raycasting to find a position in 3D space
+        if let worldPosition = performRobustRaycast(from: centerPoint, in: sceneView) {
+            // Create the overlay node
+            let node = createStabilizedTextNode(
+                text: item.translatedText ?? item.text,
+                fontSize: calculateFontSize(for: item, in: sceneView),
+                at: worldPosition
+            )
+
+            return node
+        }
+
+        return nil
+    }
+
+    /// Performs robust raycasting with multiple fallback strategies
+    private func performRobustRaycast(from point: CGPoint, in sceneView: ARSCNView) -> SCNVector3? {
+        // Strategy 1: Try existing planes
+        if let query = sceneView.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any) {
+            let results = sceneView.session.raycast(query)
+            if let result = results.first {
+                return SCNVector3(result.worldTransform.columns.3.x,
+                                result.worldTransform.columns.3.y,
+                                result.worldTransform.columns.3.z)
+            }
+        }
+
+        // Strategy 2: Try estimated planes
+        if let query = sceneView.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .any) {
+            let results = sceneView.session.raycast(query)
+            if let result = results.first {
+                return SCNVector3(result.worldTransform.columns.3.x,
+                                result.worldTransform.columns.3.y,
+                                result.worldTransform.columns.3.z)
+            }
+        }
+
+        // Strategy 3: Use hit test on feature points
+        let hitResults = sceneView.hitTest(point, types: [.featurePoint])
+        if let result = hitResults.first {
+            return SCNVector3(result.worldTransform.columns.3.x,
+                            result.worldTransform.columns.3.y,
+                            result.worldTransform.columns.3.z)
+        }
+
+        // Strategy 4: Project at fixed distance
+        guard let frame = sceneView.session.currentFrame else { return nil }
+        let camera = frame.camera
+        let viewMatrix = camera.viewMatrix(for: .portrait)
+        let projectionMatrix = camera.projectionMatrix(for: .portrait, viewportSize: sceneView.bounds.size, zNear: 0.001, zFar: 1000)
+
+        // Unproject point to 3D space at 0.5m distance
+        let normalizedPoint = CGPoint(
+            x: (point.x / sceneView.bounds.width) * 2 - 1,
+            y: -((point.y / sceneView.bounds.height) * 2 - 1)
+        )
+
+        let nearPoint = simd_float4(Float(normalizedPoint.x), Float(normalizedPoint.y), -1, 1)
+        let farPoint = simd_float4(Float(normalizedPoint.x), Float(normalizedPoint.y), 1, 1)
+
+        let inverseProjection = projectionMatrix.inverse
+        let inverseView = viewMatrix.inverse
+
+        let nearWorld = inverseView * (inverseProjection * nearPoint)
+        let farWorld = inverseView * (inverseProjection * farPoint)
+
+        let nearWorldNormalized = simd_float3(nearWorld.x / nearWorld.w, nearWorld.y / nearWorld.w, nearWorld.z / nearWorld.w)
+        let farWorldNormalized = simd_float3(farWorld.x / farWorld.w, farWorld.y / farWorld.w, farWorld.z / farWorld.w)
+
+        let direction = simd_normalize(farWorldNormalized - nearWorldNormalized)
+        let distance: Float = 0.5 // 50cm from camera
+
+        let worldPos = nearWorldNormalized + direction * distance
+
+        return SCNVector3(worldPos.x, worldPos.y, worldPos.z)
+    }
+
+    /// Creates a stabilized text node with proper constraints
+    /// Now with orientation-locked overlays that truly replace text
+    private func createStabilizedTextNode(text: String, fontSize: CGFloat, at position: SCNVector3) -> SCNNode {
+        // Use SpriteKit for better text rendering
+        let labelNode = SKLabelNode(text: text)
+        labelNode.fontName = "Helvetica-Bold"
+        labelNode.fontSize = fontSize
+        labelNode.fontColor = .white
+        labelNode.verticalAlignmentMode = .center
+        labelNode.horizontalAlignmentMode = .center
+
+        // Calculate size
+        let textSize = labelNode.frame.size
+        let padding: CGFloat = 20
+
+        // Create background with rounded corners
+        let backgroundSize = CGSize(
+            width: textSize.width + padding * 2,
+            height: textSize.height + padding
+        )
+
+        let scene = SKScene(size: backgroundSize)
+        scene.backgroundColor = .clear
+
+        // Add semi-transparent black background
+        let background = SKShapeNode(rectOf: backgroundSize, cornerRadius: backgroundSize.height * 0.3)
+        background.fillColor = UIColor.black.withAlphaComponent(0.85)
+        background.strokeColor = .clear
+        background.position = CGPoint(x: backgroundSize.width / 2, y: backgroundSize.height / 2)
+        scene.addChild(background)
+
+        // Add text on top
+        labelNode.position = CGPoint(x: backgroundSize.width / 2, y: backgroundSize.height / 2)
+        scene.addChild(labelNode)
+
+        // Create plane to display the sprite
+        let aspectRatio = backgroundSize.width / backgroundSize.height
+        let planeHeight: CGFloat = 0.05  // 5cm height
+        let planeWidth = planeHeight * aspectRatio
+
+        let plane = SCNPlane(width: planeWidth, height: planeHeight)
+        plane.firstMaterial?.diffuse.contents = scene
+        plane.firstMaterial?.isDoubleSided = true
+        plane.firstMaterial?.lightingModel = .constant  // No lighting effects
+
+        // Create node
+        let textNode = SCNNode(geometry: plane)
+        textNode.position = position
+
+        // IMPROVED: Use look-at constraint for better orientation
+        // This makes text face camera but locks to surface when possible
+        let billboardConstraint = SCNBillboardConstraint()
+        billboardConstraint.freeAxes = [.Y]  // Only rotate around Y axis (keeps text upright)
+        textNode.constraints = [billboardConstraint]
+
+        // Add subtle glow effect
+        plane.firstMaterial?.emission.contents = UIColor.white.withAlphaComponent(0.2)
+
+        return textNode
+    }
+
+    /// Calculates appropriate font size based on text bounding box
+    private func calculateFontSize(for item: RecognizedTextItem, in sceneView: ARSCNView) -> CGFloat {
+        let viewSize = sceneView.bounds.size
+        let textHeight = item.boundingBox.height * viewSize.height
+
+        // Map screen height to font size (empirically determined)
+        let baseFontSize: CGFloat = 200
+        let scaleFactor = textHeight / 20.0
+        return baseFontSize * max(0.5, min(scaleFactor, 3.0))
     }
     
     // MARK: - Annotation Visuals

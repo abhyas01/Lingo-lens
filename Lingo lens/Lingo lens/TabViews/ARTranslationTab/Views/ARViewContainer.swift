@@ -13,7 +13,8 @@ import SceneKit
 /// Handles AR session setup and gesture recognition
 struct ARViewContainer: UIViewRepresentable {
     @ObservedObject var arViewModel: ARViewModel
-    
+    var translationService: TranslationService
+
     // MARK: - View Setup
 
     /// Creates and configures the AR scene view
@@ -66,6 +67,6 @@ struct ARViewContainer: UIViewRepresentable {
     
     /// Creates a coordinator to handle ARKit delegates and gestures
     func makeCoordinator() -> ARCoordinator {
-        ARCoordinator(arViewModel: arViewModel)
+        ARCoordinator(arViewModel: arViewModel, translationService: translationService)
     }
 }
