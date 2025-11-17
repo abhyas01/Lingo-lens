@@ -11,10 +11,10 @@ import SceneKit
 
 /// Represents a detected text item from OCR
 struct RecognizedTextItem: Identifiable {
-    let id = UUID()
-    let text: String
-    let confidence: Float
-    let boundingBox: CGRect          // Normalized coordinates (0-1)
+    var id = UUID()
+    var text: String
+    var confidence: Float
+    var boundingBox: CGRect          // Normalized coordinates (0-1)
     var worldPosition: SCNVector3?   // AR anchor position
     var translatedText: String?
     var isSelected: Bool = false

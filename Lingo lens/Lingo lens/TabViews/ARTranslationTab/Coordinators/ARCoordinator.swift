@@ -9,6 +9,7 @@ import ARKit
 import SceneKit
 import Vision
 import SwiftUI
+import Translation
 
 /// Connects AR session events to the ARViewModel
 /// Handles camera frames, detects objects, and manages user interactions with AR annotations
@@ -34,9 +35,16 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     
     // Object detection logic is handled by separate manager
     private let objectDetectionManager = ObjectDetectionManager()
-    
-    init(arViewModel: ARViewModel) {
+
+    // Text recognition logic
+    private let textRecognitionManager = TextRecognitionManager()
+
+    // Translation service for recognized text
+    private var translationService: TranslationService?
+
+    init(arViewModel: ARViewModel, translationService: TranslationService? = nil) {
         self.arViewModel = arViewModel
+        self.translationService = translationService
         super.init()
     }
     
@@ -191,12 +199,26 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
     private func processFrameData(pixelBuffer: CVPixelBuffer,
                                  exifOrientation: CGImagePropertyOrientation,
                                  normalizedROI: CGRect) {
-        
-        // Send the cropped region to object detection manager
-        objectDetectionManager.detectObjectCropped(
-            pixelBuffer: pixelBuffer,
-            exifOrientation: exifOrientation,
-            normalizedROI: normalizedROI
+
+        // Route to appropriate detection based on mode
+        if arViewModel.detectionMode == .text {
+            // Text recognition mode
+            textRecognitionManager.recognizeText(in: pixelBuffer, roi: normalizedROI) { [weak self] items in
+                guard let self = self else { return }
+
+                DispatchQueue.main.async {
+                    self.arViewModel.recognizedTexts = items
+
+                    // Translate recognized texts
+                    self.translateAndDisplayTexts(items)
+                }
+            }
+        } else {
+            // Object detection mode (existing)
+            objectDetectionManager.detectObjectCropped(
+                pixelBuffer: pixelBuffer,
+                exifOrientation: exifOrientation,
+                normalizedROI: normalizedROI
         ) { [weak self] result in
             
             // Update the UI with detection result on main thread using weak self
@@ -206,7 +228,48 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             }
         }
     }
-    
+
+    /// Translates recognized texts and creates AR overlays
+    private func translateAndDisplayTexts(_ items: [RecognizedTextItem]) {
+        guard let sceneView = arViewModel.sceneView,
+              let translationService = translationService else { return }
+
+        // Combine adjacent texts into phrases for better translation
+        let combinedItems = textRecognitionManager.combineAdjacentTexts(items)
+
+        // Translate each recognized text
+        Task {
+            var translatedItems: [RecognizedTextItem] = []
+
+            for var item in combinedItems {
+                // Translate the text
+                let targetLanguage = await arViewModel.selectedLanguage.language
+
+                do {
+                    let configuration = TranslationSession.Configuration(
+                        source: Locale.Language(identifier: "en"), // Auto-detect would be better
+                        target: targetLanguage
+                    )
+
+                    let session = TranslationSession(configuration: configuration)
+                    let response = try await session.translate(item.text)
+
+                    item.translatedText = response.targetText
+                    translatedItems.append(item)
+                } catch {
+                    print("Translation error: \(error)")
+                    item.translatedText = item.text  // Fallback to original
+                    translatedItems.append(item)
+                }
+            }
+
+            // Create AR overlays on main thread
+            await MainActor.run {
+                self.arViewModel.createTextOverlays(for: translatedItems, in: sceneView)
+            }
+        }
+    }
+
     /// Updates the loading message only if it's different from current message
     /// Prevents unnecessary UI updates when message hasn't changed
     private func updateLoadingMessage(_ message: String) {
@@ -214,7 +277,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
             self.arViewModel.loadingMessage = message
         }
     }
-    
+
     // MARK: - Annotation Interaction
 
     /// Handles taps on AR annotations
