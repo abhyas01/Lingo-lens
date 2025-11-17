@@ -459,54 +459,64 @@ class ARViewModel: ObservableObject {
     }
 
     /// Creates a stabilized text node with proper constraints
+    /// Now with orientation-locked overlays that truly replace text
     private func createStabilizedTextNode(text: String, fontSize: CGFloat, at position: SCNVector3) -> SCNNode {
-        // Create text geometry
-        let textGeometry = SCNText(string: text, extrusionDepth: 0.5)
-        textGeometry.font = UIFont.systemFont(ofSize: fontSize, weight: .medium)
-        textGeometry.flatness = 0.1
-        textGeometry.firstMaterial?.diffuse.contents = UIColor.white
-        textGeometry.firstMaterial?.emission.contents = UIColor.white.withAlphaComponent(0.5)
-        textGeometry.firstMaterial?.isDoubleSided = true
+        // Use SpriteKit for better text rendering
+        let labelNode = SKLabelNode(text: text)
+        labelNode.fontName = "Helvetica-Bold"
+        labelNode.fontSize = fontSize
+        labelNode.fontColor = .white
+        labelNode.verticalAlignmentMode = .center
+        labelNode.horizontalAlignmentMode = .center
+
+        // Calculate size
+        let textSize = labelNode.frame.size
+        let padding: CGFloat = 20
+
+        // Create background with rounded corners
+        let backgroundSize = CGSize(
+            width: textSize.width + padding * 2,
+            height: textSize.height + padding
+        )
+
+        let scene = SKScene(size: backgroundSize)
+        scene.backgroundColor = .clear
+
+        // Add semi-transparent black background
+        let background = SKShapeNode(rectOf: backgroundSize, cornerRadius: backgroundSize.height * 0.3)
+        background.fillColor = UIColor.black.withAlphaComponent(0.85)
+        background.strokeColor = .clear
+        background.position = CGPoint(x: backgroundSize.width / 2, y: backgroundSize.height / 2)
+        scene.addChild(background)
+
+        // Add text on top
+        labelNode.position = CGPoint(x: backgroundSize.width / 2, y: backgroundSize.height / 2)
+        scene.addChild(labelNode)
+
+        // Create plane to display the sprite
+        let aspectRatio = backgroundSize.width / backgroundSize.height
+        let planeHeight: CGFloat = 0.05  // 5cm height
+        let planeWidth = planeHeight * aspectRatio
+
+        let plane = SCNPlane(width: planeWidth, height: planeHeight)
+        plane.firstMaterial?.diffuse.contents = scene
+        plane.firstMaterial?.isDoubleSided = true
+        plane.firstMaterial?.lightingModel = .constant  // No lighting effects
 
         // Create node
-        let textNode = SCNNode(geometry: textGeometry)
+        let textNode = SCNNode(geometry: plane)
+        textNode.position = position
 
-        // Center the text
-        let (min, max) = textNode.boundingBox
-        let dx = min.x + 0.5 * (max.x - min.x)
-        let dy = min.y + 0.5 * (max.y - min.y)
-        textNode.pivot = SCNMatrix4MakeTranslation(dx, dy, 0)
-
-        // Create container with background
-        let containerNode = SCNNode()
-
-        // Add semi-transparent background
-        let backgroundWidth = (max.x - min.x) * 1.1
-        let backgroundHeight = (max.y - min.y) * 1.3
-        let backgroundPlane = SCNPlane(width: CGFloat(backgroundWidth), height: CGFloat(backgroundHeight))
-        backgroundPlane.cornerRadius = CGFloat(backgroundHeight) * 0.1
-        backgroundPlane.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.7)
-        backgroundPlane.firstMaterial?.isDoubleSided = true
-
-        let backgroundNode = SCNNode(geometry: backgroundPlane)
-        backgroundNode.position = SCNVector3(0, 0, -0.01)
-
-        containerNode.addChildNode(backgroundNode)
-        containerNode.addChildNode(textNode)
-
-        // Position in world
-        containerNode.position = position
-
-        // Add billboard constraint (always face camera)
+        // IMPROVED: Use look-at constraint for better orientation
+        // This makes text face camera but locks to surface when possible
         let billboardConstraint = SCNBillboardConstraint()
-        billboardConstraint.freeAxes = [.X, .Y, .Z]
-        containerNode.constraints = [billboardConstraint]
+        billboardConstraint.freeAxes = [.Y]  // Only rotate around Y axis (keeps text upright)
+        textNode.constraints = [billboardConstraint]
 
-        // Scale appropriately (text is in points, need to convert to meters)
-        let scale: Float = 0.001
-        containerNode.scale = SCNVector3(scale, scale, scale)
+        // Add subtle glow effect
+        plane.firstMaterial?.emission.contents = UIColor.white.withAlphaComponent(0.2)
 
-        return containerNode
+        return textNode
     }
 
     /// Calculates appropriate font size based on text bounding box

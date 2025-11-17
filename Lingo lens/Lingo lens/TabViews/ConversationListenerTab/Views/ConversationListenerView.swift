@@ -103,6 +103,8 @@ struct ConversationListenerView: View {
                     Menu {
                         Toggle("Auto-play Translation", isOn: $viewModel.autoPlayTranslation)
 
+                        Toggle("Auto-detect Speaker", isOn: $viewModel.autoDetectSpeaker)
+
                         Divider()
 
                         Button(action: {

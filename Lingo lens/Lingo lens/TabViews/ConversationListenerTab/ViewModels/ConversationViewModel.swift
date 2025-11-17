@@ -27,12 +27,15 @@ class ConversationViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthorized: Bool = false
     @Published var showPermissionAlert: Bool = false
+    @Published var autoDetectSpeaker: Bool = true  // NEW: Auto-detect who is speaking
+    @Published var splitScreenMode: Bool = false   // NEW: Split-screen conversation mode
 
     // MARK: - Private Properties
 
     private let speechRecognitionManager = SpeechRecognitionManager()
     private let translationService: TranslationService
     private let speechManager: SpeechManager
+    private let languageDetectionManager = LanguageDetectionManager()
     private var cancellables = Set<AnyCancellable>()
     private let maxMessages = 100
 
@@ -131,8 +134,14 @@ class ConversationViewModel: ObservableObject {
     }
 
     /// Processes recognized speech and translates it
+    /// Now with automatic speaker detection based on language
     func processRecognizedSpeech(_ text: String) async {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        // Auto-detect speaker if enabled
+        if autoDetectSpeaker {
+            detectAndSetSpeaker(from: text)
+        }
 
         let sourceLanguage = currentSpeaker == .me ? myLanguage : theirLanguage
         let targetLanguage = currentSpeaker == .me ? theirLanguage : myLanguage
@@ -166,6 +175,25 @@ class ConversationViewModel: ObservableObject {
 
         } catch {
             errorMessage = "Translation failed: \(error.localizedDescription)"
+        }
+    }
+
+    /// Detects the speaker based on the language of the text
+    private func detectAndSetSpeaker(from text: String) {
+        // Detect language of spoken text
+        if let detectedLanguage = languageDetectionManager.detectLanguage(text: text) {
+            let myLangCode = myLanguage.minimalIdentifier
+            let theirLangCode = theirLanguage.minimalIdentifier
+
+            // Check which language matches better
+            if detectedLanguage.minimalIdentifier == myLangCode {
+                currentSpeaker = .me
+                print("🔍 Auto-detected speaker: Me (\(myLangCode))")
+            } else if detectedLanguage.minimalIdentifier == theirLangCode {
+                currentSpeaker = .them
+                print("🔍 Auto-detected speaker: Them (\(theirLangCode))")
+            }
+            // If neither matches perfectly, keep current speaker
         }
     }
 
