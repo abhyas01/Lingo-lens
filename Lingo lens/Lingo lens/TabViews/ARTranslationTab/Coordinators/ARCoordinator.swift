@@ -301,7 +301,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         var closestAnnotation: (distance: CGFloat, text: String)? = nil
 
         // Check if tap hit any annotation
-        for annotation in arViewModel.annotationNodes {
+        for annotation in arViewModel.annotationManager.annotationNodes {
             
             // Get the annotation's plane node (the visual part that can be tapped)
             guard let planeNode = annotation.node.childNode(withName: "annotationPlane", recursively: false),
@@ -377,7 +377,7 @@ class ARCoordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         var closestAnnotation: (distance: CGFloat, index: Int, text: String)? = nil
         
         // Check if long press hit any annotation
-        for (index, annotation) in arViewModel.annotationNodes.enumerated() {
+        for (index, annotation) in arViewModel.annotationManager.annotationNodes.enumerated() {
             guard let planeNode = annotation.node.childNode(withName: "annotationPlane", recursively: false),
                   let plane = planeNode.geometry as? SCNPlane,
                   let _ = plane.firstMaterial else { continue }

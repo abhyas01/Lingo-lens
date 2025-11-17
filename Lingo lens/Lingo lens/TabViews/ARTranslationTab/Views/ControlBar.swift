@@ -160,24 +160,24 @@ struct ControlBar: View {
     // Right button - adds annotation for detected object
     private var addAnnotationButton: some View {
         ZStack {
-            if arViewModel.isAddingAnnotation {
-                
+            if arViewModel.annotationManager.isAddingAnnotation {
+
                 // Loading state while adding annotation
                 ZStack {
                     Circle()
                         .fill(Color.black.opacity(0.7))
                         .frame(width: 60, height: 60)
-                    
+
                     ProgressView()
                         .scaleEffect(1.0)
                         .tint(.white)
                 }
                 .padding()
             } else {
-                
+
                 // Add button - enabled only when object is detected
                 Button(action: {
-                    guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.isAddingAnnotation else {
+                    guard !arViewModel.detectedObjectName.isEmpty && !arViewModel.annotationManager.isAddingAnnotation else {
                         Logger.debug("👆 Button pressed: Add annotation - but disabled (no object detected or already adding)")
                         return
                     }
@@ -198,9 +198,9 @@ struct ControlBar: View {
         }
         .frame(width: 60)
         .padding(.trailing)
-        .accessibilityLabel(arViewModel.isAddingAnnotation ? "Adding Annotation" : "Add Annotation")
+        .accessibilityLabel(arViewModel.annotationManager.isAddingAnnotation ? "Adding Annotation" : "Add Annotation")
         .accessibilityHint(arViewModel.detectedObjectName.isEmpty ? "No object detected" :
-                          arViewModel.isAddingAnnotation ? "Adding annotation in progress" :
+                          arViewModel.annotationManager.isAddingAnnotation ? "Adding annotation in progress" :
                           "Adds a translation annotation for the detected object")
         .accessibilityValue(arViewModel.detectedObjectName.isEmpty ? "No object detected" :
                            "Ready to annotate \(arViewModel.detectedObjectName)")
@@ -208,7 +208,7 @@ struct ControlBar: View {
 
     // Determines button color based on state
     private func determineAddButtonColor() -> Color {
-        if arViewModel.isAddingAnnotation {
+        if arViewModel.annotationManager.isAddingAnnotation {
             return Color.gray
         } else if arViewModel.detectedObjectName.isEmpty || !arViewModel.isDetectionActive {
             return Color.gray.opacity(0.25)

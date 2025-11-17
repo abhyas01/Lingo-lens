@@ -42,6 +42,10 @@ enum ARConstants {
     static let placementErrorDuration: TimeInterval = 4.0
     static let sessionResumeDelay: TimeInterval = 0.5
     static let sessionTransitionDuration: TimeInterval = 0.3
+
+    // Camera Projection
+    static let cameraZNear: Double = 0.001  // 1mm near clipping plane
+    static let cameraZFar: Double = 1000    // 1000m far clipping plane
 }
 
 // MARK: - Text Processing Constants

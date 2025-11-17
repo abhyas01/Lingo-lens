@@ -45,30 +45,9 @@ class ARViewModel: ObservableObject {
     
     // Text for currently selected annotation (when tapped)
     @Published var selectedAnnotationText: String?
-    
+
     // Whether to show the annotation detail sheet
     @Published var isShowingAnnotationDetail: Bool = false
-    
-    // Controls error alert when annotation can't be placed
-    @Published var showPlacementError = false
-    
-    // Tracks if we're currently placing an annotation
-    @Published var isAddingAnnotation = false
-    
-    // Error message when annotation placement fails
-    @Published var placementErrorMessage = "Couldn't place label. Try:\n• Move closer to the surface\n• Point at a flat area\n• Ensure good lighting"
-    
-    // Controls delete confirmation alert
-    @Published var showDeleteConfirmation = false
-    
-    // Tracks which annotation is being deleted
-    @Published var annotationToDelete: Int? = nil
-    
-    // Name of the annotation being deleted (shown in alert)
-    @Published var annotationNameToDelete: String = ""
-    
-    // Tracks whether deletion is in progress
-    @Published var isDeletingAnnotation = false
     
     // Tracks if AR is setting up
     @Published var isARSessionLoading: Bool = true
@@ -100,18 +79,17 @@ class ARViewModel: ObservableObject {
         didSet {
             Logger.debug("Annotation size slider updated to: \(annotationScale)")
             DataManager.shared.saveAnnotationScale(annotationScale)
-            updateAllAnnotationScales()
+            annotationManager.updateAllAnnotationScales(annotationScale)
         }
     }
 
     // MARK: - Properties
-    
+
     // Reference to AR scene view (set by ARViewContainer)
     weak var sceneView: ARSCNView?
-    
-    // All annotations placed in 3D space
-    // Contains the node, original text, and world position
-    var annotationNodes: [(node: SCNNode, originalText: String, worldPos: SIMD3<Float>)] = []
+
+    // Manages all annotation-related functionality
+    let annotationManager = AnnotationManager()
     
     
     // MARK: - Initialization
@@ -142,62 +120,18 @@ class ARViewModel: ObservableObject {
     }
 
     /// Shows delete confirmation alert for an annotation
-    /// Formats object name for display in the alert
+    /// Delegates to AnnotationManager
     func showDeleteAnnotationAlert(index: Int, objectName: String) {
-        annotationToDelete = index
-        
-        // Truncate long names with ellipsis
-        if objectName.count > 15 {
-            let endIndex = objectName.index(objectName.startIndex, offsetBy: 12)
-            annotationNameToDelete = String(objectName[..<endIndex]) + "..."
-        } else {
-            annotationNameToDelete = objectName
-        }
-        showDeleteConfirmation = true
+        annotationManager.showDeleteAnnotationAlert(index: index, objectName: objectName)
     }
 
     /// Removes an annotation from the AR scene
-    /// Called when user confirms deletion
+    /// Delegates to AnnotationManager
     func deleteAnnotation() {
-        guard let index = annotationToDelete, index < annotationNodes.count else {
-            Logger.warning("Invalid annotation index for deletion: \(String(describing: annotationToDelete))")
-            return
-        }
-        
-        Logger.debug(" Deleting annotation at index \(index)")
-        isDeletingAnnotation = true
-        
-        // Small delay to show deletion is happening
-        DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.annotationAddDelay) { [weak self] in
-            guard let self = self else { return }
-            
-            // Get the annotation and remove from scene
-            let (node, _, _) = self.annotationNodes[index]
-            Logger.debug(" Removing annotation from scene")
-            node.removeFromParentNode()
-
-            // Remove from our tracking array
-            self.annotationNodes.remove(at: index)
-            Logger.info(" Annotation deleted successfully - \(self.annotationNodes.count) annotations remaining")
-
-            // Haptic feedback for deletion
-            HapticManager.shared.annotationRemoved()
-
-            // Reset state
-            self.isDeletingAnnotation = false
-            self.annotationToDelete = nil
-            self.showDeleteConfirmation = false
-        }
+        annotationManager.deleteAnnotation()
     }
-    
+
     // MARK: - Annotation Management
-
-    /// Updates the size of all annotations when scale slider changes
-    private func updateAllAnnotationScales() {
-        for (node, _, _) in annotationNodes {
-            node.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
-        }
-    }
 
     /// Pauses the AR session and stops object detection
     func pauseARSession() {
@@ -243,7 +177,7 @@ class ARViewModel: ObservableObject {
             }
             
             // Smooth transition when restarting session
-            UIView.transition(with: sceneView, duration: 0.3, options: .transitionCrossDissolve) {
+            UIView.transition(with: sceneView, duration: ARConstants.sessionTransitionDuration, options: .transitionCrossDissolve) {
                 sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors, .resetSceneReconstruction])
             }
             
@@ -254,98 +188,14 @@ class ARViewModel: ObservableObject {
     /// Adds a new annotation at the center of the detection box
     /// Uses raycasting to find a plane to anchor it to
     func addAnnotation() {
-        
-        // Prevent multiple simultaneous adds
-        guard !isAddingAnnotation else {
-            Logger.warning(" Already adding an annotation - ignoring request")
-            return
-        }
-        
-        // Only add if we have a valid object name
-        guard !detectedObjectName.isEmpty,
-              !detectedObjectName.trimmingCharacters(in: .whitespaces).isEmpty else {
-            Logger.warning(" Cannot add annotation - no object detected")
-            return
-        }
-        
-        // Make sure AR is ready
-        guard let sceneView = sceneView,
-              sceneView.session.currentFrame != nil else { return }
-        
-        Logger.debug(" Adding annotation for object: \"\(detectedObjectName)\"")
-        isAddingAnnotation = true
-        
-        // Use center of the yellow box as placement point
-        let roiCenter = CGPoint(x: adjustableROI.midX, y: adjustableROI.midY)
-        Logger.debug(" Attempting to place annotation at screen position: \(roiCenter)")
-        
-        // Try to find a plane at that point using raycasting
-        if let query = sceneView.raycastQuery(from: roiCenter, allowing: .estimatedPlane, alignment: .any) {
-            let results = sceneView.session.raycast(query)
-            if let result = results.first {
-                DispatchQueue.main.async {
-                    
-                    // Double-check object name is still valid
-                    guard !self.detectedObjectName.isEmpty else {
-                        self.isAddingAnnotation = false
-                        return
-                    }
-                    
-                    // Create annotation and add to scene
-                    let annotationNode = self.createCapsuleAnnotation(with: self.detectedObjectName)
-                    annotationNode.simdTransform = result.worldTransform
-                    annotationNode.scale = SCNVector3(self.annotationScale, self.annotationScale, self.annotationScale)
-                    
-                    // Store world position for later reference
-                    let worldPos = SIMD3<Float>(result.worldTransform.columns.3.x,
-                                               result.worldTransform.columns.3.y,
-                                               result.worldTransform.columns.3.z)
-                    self.annotationNodes.append((annotationNode, self.detectedObjectName, worldPos))
-                    sceneView.scene.rootNode.addChildNode(annotationNode)
-
-                    // Haptic feedback for successful placement
-                    HapticManager.shared.annotationPlaced()
-
-                    // Reset state after a short delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.annotationAddDelay) {
-                        self.isAddingAnnotation = false
-                    }
-                }
-            } else {
-                
-                // No plane found - show placement error
-                DispatchQueue.main.async {
-                    self.isAddingAnnotation = false
-
-                    // Haptic feedback for error
-                    HapticManager.shared.error()
-
-                    if !self.showPlacementError {
-                        self.showPlacementError = true
-
-                        // Hide error after 4 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + ARConstants.placementErrorDuration) {
-                            self.showPlacementError = false
-                        }
-                    }
-                }
-            }
-        } else {
-            // Couldn't create raycast query
-            DispatchQueue.main.async {
-                self.isAddingAnnotation = false
-            }
-        }
+        // Delegate to AnnotationManager
+        annotationManager.addAnnotation(objectName: detectedObjectName, at: adjustableROI)
     }
-    
+
     /// Removes all annotations from the scene
     func resetAnnotations() {
-        Logger.debug(" Clearing all annotations - count before reset: \(annotationNodes.count)")
-        for (node, _, _) in annotationNodes {
-            node.removeFromParentNode()
-        }
-        annotationNodes.removeAll()
-        Logger.info(" All annotations cleared")
+        // Delegate to AnnotationManager
+        annotationManager.resetAnnotations()
     }
 
     // MARK: - Text Overlay Management
@@ -443,7 +293,7 @@ class ARViewModel: ObservableObject {
         guard let frame = sceneView.session.currentFrame else { return nil }
         let camera = frame.camera
         let viewMatrix = camera.viewMatrix(for: .portrait)
-        let projectionMatrix = camera.projectionMatrix(for: .portrait, viewportSize: sceneView.bounds.size, zNear: 0.001, zFar: 1000)
+        let projectionMatrix = camera.projectionMatrix(for: .portrait, viewportSize: sceneView.bounds.size, zNear: ARConstants.cameraZNear, zFar: ARConstants.cameraZFar)
 
         // Unproject point to 3D space at 0.5m distance
         let normalizedPoint = CGPoint(
@@ -541,183 +391,5 @@ class ARViewModel: ObservableObject {
         let baseFontSize = ARConstants.baseFontSize
         let scaleFactor = textHeight / ARConstants.fontSizeHeightDivisor
         return baseFontSize * max(ARConstants.minFontSizeScale, min(scaleFactor, ARConstants.maxFontSizeScale))
-    }
-    
-    // MARK: - Annotation Visuals
-
-    /// Creates a capsule-shaped annotation with text
-    /// Uses SpriteKit for text rendering inside SceneKit
-    private func createCapsuleAnnotation(with text: String) -> SCNNode {
-        let validatedText = text.isEmpty ? "Unknown Object" : text
-
-        // Size calculations based on text length
-        let baseWidth = ARConstants.annotationBaseWidth
-        let extraWidthPerChar = ARConstants.annotationExtraWidthPerChar
-        let maxTextWidth = ARConstants.annotationMaxWidth
-        let minTextWidth = ARConstants.annotationMinWidth
-        let planeHeight = ARConstants.annotationHeight
-        
-        // Adjust width based on text length with min/max constraints
-        let textCount = CGFloat(validatedText.count)
-        let planeWidth = min(max(baseWidth + textCount * extraWidthPerChar, minTextWidth),
-                             maxTextWidth)
-        
-        // Create a plane with rounded corners
-        let plane = SCNPlane(width: planeWidth, height: planeHeight)
-        plane.cornerRadius = ARConstants.annotationCornerRadius
-        
-        // Use SpriteKit scene for the plane's contents
-        plane.firstMaterial?.diffuse.contents = makeCapsuleSKScene(with: validatedText, width: planeWidth, height: planeHeight)
-        plane.firstMaterial?.isDoubleSided = true
-        
-        // Create node hierarchy
-        let planeNode = SCNNode(geometry: plane)
-        planeNode.name = "annotationPlane"
-        planeNode.categoryBitMask = 1
-
-        let containerNode = SCNNode()
-        containerNode.name = "annotationContainer"
-        containerNode.categoryBitMask = 1
-        
-        // Position the plane slightly above the anchor point
-        containerNode.addChildNode(planeNode)
-        planeNode.position = SCNVector3(0, ARConstants.annotationVerticalOffset, 0)
-        containerNode.eulerAngles.x = -Float.pi / 2
-        
-        // Apply user's preferred scale
-        containerNode.scale = SCNVector3(annotationScale, annotationScale, annotationScale)
-        
-        // Make annotation always face the camera
-        let billboard = SCNBillboardConstraint()
-        billboard.freeAxes = [.X, .Y, .Z]
-        containerNode.constraints = [billboard]
-        
-        return containerNode
-    }
-    
-    /// Creates a 2D SpriteKit scene for the annotation's visual appearance
-    /// Handles text layout, background capsule, and styling
-    private func makeCapsuleSKScene(with text: String, width: CGFloat, height: CGFloat) -> SKScene {
-        let sceneSize = CGSize(width: SpriteKitConstants.annotationSceneWidth, height: SpriteKitConstants.annotationSceneHeight)
-        let scene = SKScene(size: sceneSize)
-        scene.scaleMode = .aspectFit
-        scene.backgroundColor = .clear
-        
-        // Create white capsule background
-        let bgRect = CGRect(origin: .zero, size: sceneSize)
-        let background = SKShapeNode(rect: bgRect, cornerRadius: SpriteKitConstants.capsuleCornerRadius)
-        background.fillColor = .white
-        background.strokeColor = .clear
-        scene.addChild(background)
-        
-        // Container for text elements with flipped Y-axis
-        let containerNode = SKNode()
-        containerNode.setScale(1.0)
-        containerNode.yScale = -1
-        scene.addChild(containerNode)
-        
-        // Add chevron icon to indicate tappable
-        let chevron = SKLabelNode(fontNamed: "SF Pro")
-        chevron.text = "›"
-        chevron.fontSize = SpriteKitConstants.chevronFontSize
-        chevron.fontColor = .gray
-        chevron.verticalAlignmentMode = .center
-        chevron.horizontalAlignmentMode = .center
-        chevron.position = CGPoint(x: sceneSize.width - SpriteKitConstants.chevronXOffset, y: -sceneSize.height / 2)
-        containerNode.addChild(chevron)
-        
-        // Process text into lines that fit the capsule
-        let processedLines = processTextIntoLines(text, maxCharsPerLine: TextProcessingConstants.maxCharsPerLine)
-        let lineHeight = SpriteKitConstants.lineHeight
-        let totalTextHeight = CGFloat(processedLines.count) * lineHeight
-        let startY = (sceneSize.height + totalTextHeight) / 2 - lineHeight / 2
-        
-        // Add each line of text
-        for (i, line) in processedLines.enumerated() {
-            let label = SKLabelNode(fontNamed: "Helvetica-Bold")
-            label.text = line
-            label.fontSize = SpriteKitConstants.labelFontSize
-            label.fontColor = .black
-            label.verticalAlignmentMode = .center
-            label.horizontalAlignmentMode = .center
-            
-            let yPosition = startY - (CGFloat(i) * lineHeight)
-            label.position = CGPoint(
-                x: (sceneSize.width - SpriteKitConstants.chevronXOffset) / 2,
-                y: -yPosition
-            )
-            containerNode.addChild(label)
-        }
-        
-        return scene
-    }
-    
-    /// Handles text wrapping for annotation labels
-    /// Splits text into lines and adds ellipsis for overflow
-    private func processTextIntoLines(_ text: String, maxCharsPerLine: Int) -> [String] {
-        var lines = [String]()
-        var words = text.split(separator: " ").map(String.init)
-        var currentLine = ""
-        
-        let ellipsis = TextProcessingConstants.ellipsis
-        
-        // Process words into lines with max 2 lines total
-        while !words.isEmpty && lines.count < TextProcessingConstants.maxLines {
-            let word = words[0]
-            let testLine = currentLine.isEmpty ? word : currentLine + " " + word
-            
-            if testLine.count <= maxCharsPerLine {
-                
-                // Word fits on current line
-                currentLine = testLine
-                words.removeFirst()
-            } else {
-                
-                // Word doesn't fit - handle overflow
-                if lines.count == (TextProcessingConstants.maxLines - 1) {
-                    
-                    // On second line - add ellipsis and stop
-                    if !currentLine.isEmpty {
-                        currentLine = currentLine.trimmingCharacters(in: .whitespaces)
-                        if currentLine.count > maxCharsPerLine - ellipsis.count {
-                            currentLine = String(currentLine.prefix(maxCharsPerLine - ellipsis.count)) + ellipsis
-                        } else {
-                            currentLine += ellipsis
-                        }
-                    }
-                    break
-                } else {
-                    
-                    // On first line - start new line or truncate
-                    if !currentLine.isEmpty {
-                        lines.append(currentLine)
-                        currentLine = ""
-                    } else {
-                        currentLine = String(word.prefix(maxCharsPerLine))
-                        words.removeFirst()
-                    }
-                }
-            }
-        }
-        
-        // Add final line if not empty
-        if !currentLine.isEmpty {
-            lines.append(currentLine)
-        }
-        
-        // Add ellipsis to last line if we have more words
-        if !words.isEmpty && lines.count <= 2 {
-            let lastIndex = lines.count - 1
-            var lastLine = lines[lastIndex]
-            if lastLine.count > maxCharsPerLine - ellipsis.count {
-                lastLine = String(lastLine.prefix(maxCharsPerLine - ellipsis.count)) + ellipsis
-            } else {
-                lastLine += ellipsis
-            }
-            lines[lastIndex] = lastLine
-        }
-        
-        // Reverse order because SpriteKit's coordinate system is different
-        return lines.reversed()
     }
 }

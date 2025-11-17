@@ -244,8 +244,8 @@ struct ARTranslationView: View {
                 }
 
                 // Error message when annotation placement fails
-                if arViewModel.showPlacementError {
-                    Text(arViewModel.placementErrorMessage)
+                if arViewModel.annotationManager.showPlacementError {
+                    Text(arViewModel.annotationManager.placementErrorMessage)
                         .font(.callout)
                         .foregroundColor(.white)
                         .padding()
@@ -267,7 +267,7 @@ struct ARTranslationView: View {
             }
             
             // Overlay when deleting an annotation
-            if arViewModel.isDeletingAnnotation {
+            if arViewModel.annotationManager.isDeletingAnnotation {
                 ZStack {
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
@@ -353,19 +353,19 @@ struct ARTranslationView: View {
         }
         
         // Alert to confirm annotation deletion
-        .alert("Remove Label", isPresented: $arViewModel.showDeleteConfirmation) {
+        .alert("Remove Label", isPresented: $arViewModel.annotationManager.showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
-                arViewModel.annotationToDelete = nil
+                arViewModel.annotationManager.annotationToDelete = nil
             }
             Button("Delete", role: .destructive) {
                 arViewModel.deleteAnnotation()
             }
         } message: {
-            Text("Remove the \"\(arViewModel.annotationNameToDelete)\" label?")
+            Text("Remove the \"\(arViewModel.annotationManager.annotationNameToDelete)\" label?")
         }
-        
+
         // Smooth animation for error messages
-        .animation(.easeInOut, value: arViewModel.showPlacementError)
+        .animation(.easeInOut, value: arViewModel.annotationManager.showPlacementError)
         
         // Annotation detail sheet (shows translation)
         .sheet(isPresented: $arViewModel.isShowingAnnotationDetail) {

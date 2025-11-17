@@ -29,8 +29,9 @@ struct ARViewContainer: UIViewRepresentable {
         sceneView.delegate = context.coordinator
         sceneView.session.delegate = context.coordinator
         
-        // Store a reference to the scene view in our view model
+        // Store a reference to the scene view in our view model and annotation manager
         arViewModel.sceneView = sceneView
+        arViewModel.annotationManager.sceneView = sceneView
         
         // Set up AR world tracking with plane detection
         // Needed to find surfaces for placing annotations
