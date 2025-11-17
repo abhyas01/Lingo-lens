@@ -29,7 +29,9 @@ class TranslationService: ObservableObject {
 
     init() {
         // Start loading languages when service is created
-        getSupportedLanguages()
+        Task {
+            await getSupportedLanguages()
+        }
     }
     
     // MARK: - Language Management
@@ -39,59 +41,49 @@ class TranslationService: ObservableObject {
     /// - Parameter language: The language to check
     /// - Returns: True if language is downloaded, false otherwise
     func isLanguageDownloaded(language: AvailableLanguage) async -> Bool {
-        print("🔍 Checking if language is downloaded: \(language.shortName())")
+        Logger.debug("Checking if language is downloaded: \(language.shortName())")
         let availability = LanguageAvailability()
         let status = await availability.status(
             from: sourceLanguage,
             to: language.locale
         )
-        
+
         // Check the download status from the system
         switch status {
-            
         case .installed:
-            
-            // Language is downloaded and ready to use
-            print("🔍 Language \(language.shortName()) download status: true")
+            Logger.debug("Language \(language.shortName()) is installed")
             return true
-            
+
         case .supported, .unsupported:
-            
-            // Language is either supported but not downloaded,
-            // or not supported at all
-            print("🔍 Language \(language.shortName()) download status: false")
+            Logger.debug("Language \(language.shortName()) is not installed")
             return false
-            
+
         @unknown default:
-            
-            // Handle any future Apple-added statuses
+            Logger.warning("Unknown language availability status")
             return false
         }
     }
     
     /// Fetches available languages from iOS translation system
     /// Populates the availableLanguages array with all supported translation languages
-    func getSupportedLanguages() {
-        print("🌐 Loading supported languages...")
+    @MainActor
+    func getSupportedLanguages() async {
+        Logger.info("Loading supported languages...")
         isInitialLoading = true
-        
-        // Run language loading in background
-        Task { @MainActor in
-            
-            // Get all languages supported by the device
-            let supportedLanguages = await LanguageAvailability().supportedLanguages
-            print("🌐 Found \(supportedLanguages.count) supported languages")
-            
-            // Filter out English (since it's our source language)
-            // and create our own AvailableLanguage objects
-            availableLanguages = supportedLanguages
-                .filter { $0.languageCode != "en" }
-                .map { AvailableLanguage(locale: $0) }
-                .sorted()
-            
-            print("🌐 Filtered to \(availableLanguages.count) available languages (excluding English)")
-            isInitialLoading = false
-        }
+
+        // Get all languages supported by the device
+        let supportedLanguages = await LanguageAvailability().supportedLanguages
+        Logger.info("Found \(supportedLanguages.count) supported languages")
+
+        // Filter out English (since it's our source language)
+        // and create our own AvailableLanguage objects
+        availableLanguages = supportedLanguages
+            .filter { $0.languageCode != "en" }
+            .map { AvailableLanguage(locale: $0) }
+            .sorted()
+
+        Logger.info("Filtered to \(availableLanguages.count) available languages (excluding English)")
+        isInitialLoading = false
     }
     
     // MARK: - Translation
@@ -102,13 +94,18 @@ class TranslationService: ObservableObject {
     ///   - session: Active translation session for the target language
     @MainActor
     func translate(text: String, using session: TranslationSession) async throws {
-        print("🔄 Translating text: \"\(text)\"")
+        Logger.debug("Translating text: \"\(text)\"")
 
-        // Use the Apple Translation framework to translate the text
-        let response = try await session.translate(text)
-        
-        print("✅ Translation result: \"\(response.targetText)\"")
-        // Update our published property with the result
-        translatedText = response.targetText
+        do {
+            // Use the Apple Translation framework to translate the text
+            let response = try await session.translate(text)
+
+            Logger.debug("Translation result: \"\(response.targetText)\"")
+            // Update our published property with the result
+            translatedText = response.targetText
+        } catch {
+            Logger.error("Translation failed: \(error.localizedDescription)")
+            throw TranslationError.sessionFailed(error)
+        }
     }
 }

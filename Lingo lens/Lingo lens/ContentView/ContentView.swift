@@ -71,12 +71,12 @@ struct ContentView: View {
         .withCoreDataErrorHandling()
         
         .onReceive(translationService.$availableLanguages) { languages in
-            print("🌐 Available languages updated: \(languages.count) languages available")
+            Logger.info("Available languages updated: \(languages.count) languages available")
             if !languages.isEmpty {
                 arViewModel.updateSelectedLanguageFromUserDefaults(availableLanguages: languages)
                 showNoLanguagesAlert = false
             } else if !translationService.isInitialLoading {
-                print("⚠️ No languages available - showing alert")
+                Logger.warning("No languages available - showing alert")
                 showNoLanguagesAlert = true
             }
         }
@@ -88,15 +88,15 @@ struct ContentView: View {
         }
         
         .onChange(of: selectedTab) { oldValue, newValue in
-            print("📑 Tab changed from \(oldValue) to \(newValue)")
+            Logger.debug("Tab changed from \(oldValue) to \(newValue)")
             if newValue == .arTranslationView || newValue == .translatorView ||
                newValue == .conversationView || newValue == .savedWordsView {
                 Task {
-                    print("🔊 Preparing audio session for tab: \(newValue)")
+                    Logger.debug("Preparing audio session for tab: \(newValue)")
                     SpeechManager.shared.prepareAudioSession()
                 }
             } else if newValue == .settingsView {
-                print("🔇 Deactivating audio session for settings tab")
+                Logger.debug("Deactivating audio session for settings tab")
                 SpeechManager.shared.deactivateAudioSession()
             }
         }

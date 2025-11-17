@@ -11,18 +11,16 @@ import SwiftUI
 struct Lingo_lensApp: App {
     
     init() {
-
         //  If app was not initialized already, only then we call
         //  DataManager.shared.trackAppLaunch() to increment the
         //  launch count
         if !Self.didInitOnce {
             Self.didInitOnce = true
-            
-            // Add logging on app startup
-            print("🚀 App initializing...")
+
+            Logger.info("App initializing...")
 
             // Track the app launch only the first time this
-            // SwiftUI app struct is created in a truly fresh run:
+            // SwiftUI app struct is created in a truly fresh run
             DataManager.shared.trackAppLaunch()
         }
     }
@@ -33,8 +31,8 @@ struct Lingo_lensApp: App {
     private static var didInitOnce = false
     
     // Track whether to show onboarding
-    @State private var showOnboarding = DataManager.shared.didFinishOnBoarding() ? false : true
-    
+    @State private var showOnboarding = !DataManager.shared.didFinishOnBoarding
+
     // Add state for showing splash screen
     @State private var showSplashScreen = true
     
@@ -68,10 +66,10 @@ struct Lingo_lensApp: App {
                     } else {
                         
                         ContentView()
-                        
+
                             // Log app lifecycle events
                             .onAppear {
-                                print("📱 App appeared - Main UI loaded")
+                                Logger.info("Main UI loaded")
                             }
                         
                             // Makes translation service available to all child views
@@ -88,14 +86,14 @@ struct Lingo_lensApp: App {
                         
                             // Save data when app is terminated
                             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)) { _ in
-                                print("🛑 App terminating - Saving context")
+                                Logger.info("App terminating - Saving context")
                                 persistenceController.saveContext()
                                 SpeechManager.shared.deactivateAudioSession()
                             }
-                        
+
                             // Save data when app goes to background
                             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                                print("⏱️ App entering background - Saving context")
+                                Logger.info("App entering background - Saving context")
                                 persistenceController.saveContext()
                                 SpeechManager.shared.deactivateAudioSession()
                             }
@@ -115,8 +113,8 @@ struct Lingo_lensApp: App {
                         .onAppear {
                             
                             // Dismiss splash after delay
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                                    showSplashScreen = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + AppLaunchConstants.splashScreenDuration) {
+                                showSplashScreen = false
                             }
                         }
                 }
